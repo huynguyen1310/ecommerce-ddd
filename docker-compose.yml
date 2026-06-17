@@ -1,0 +1,177 @@
+version: '3.8'
+
+services:
+  # RabbitMQ Message Broker
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: ecom-rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+
+  # PostgreSQL for NestJS Order Service
+  order-db:
+    image: postgres:15-alpine
+    container_name: ecom-order-db
+    environment:
+      POSTGRES_DB: order_service
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5432:5432"
+
+  # MySQL for Laravel Catalog Service
+  catalog-db:
+    image: mysql:8.0
+    container_name: ecom-catalog-db
+    environment:
+      MYSQL_DATABASE: catalog_service
+      MYSQL_USER: user
+      MYSQL_PASSWORD: password
+      MYSQL_ROOT_PASSWORD: root
+    ports:
+      - "3306:3306"
+
+  # NestJS Order Service
+  order-service:
+    build:
+      context: ./nest-order-service
+    container_name: ecom-order-service
+    ports:
+      - "3001:3000"
+    environment:
+      DB_HOST: order-db
+      DB_PORT: 5432
+      DB_USER: user
+      DB_PASS: password
+      DB_NAME: order_service
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
+    depends_on:
+      - order-db
+      - rabbitmq
+
+  # Laravel Catalog Service (API)
+  catalog-service:
+    build:
+      context: ./laravel-catalog-service
+    container_name: ecom-catalog-service
+    command: php artisan serve --host=0.0.0.0 --port=9000
+    ports:
+      - "8000:9000"
+    environment:
+      DB_CONNECTION: mysql
+      DB_HOST: catalog-db
+      DB_PORT: 3306
+      DB_DATABASE: catalog_service
+      DB_USERNAME: user
+      DB_PASSWORD: password
+      APP_KEY: base64:P88YByInm5y48y/q5y5y5y5y5y5y5y5y5y5y5y5y5y5=
+      RABBITMQ_HOST: rabbitmq
+      RUN_MIGRATIONS: "true"
+    depends_on:
+      - catalog-db
+      - rabbitmq
+
+  # Laravel Catalog Service (RabbitMQ Worker)
+  catalog-worker:
+    build:
+      context: ./laravel-catalog-service
+    container_name: ecom-catalog-worker
+    command: php artisan rabbitmq:consume-orders
+    environment:
+      DB_CONNECTION: mysql
+      DB_HOST: catalog-db
+      DB_PORT: 3306
+      DB_DATABASE: catalog_service
+      DB_USERNAME: user
+      DB_PASSWORD: password
+      APP_KEY: base64:P88YByInm5y48y/q5y5y5y5y5y5y5y5y5y5y5y5y5y5=
+      RABBITMQ_HOST: rabbitmq
+      RUN_MIGRATIONS: "false"
+    depends_on:
+      - catalog-db
+      - rabbitmq
+
+  # Identity Service (Auth)
+  identity-db:
+    image: postgres:15-alpine
+    container_name: ecom-identity-db
+    environment:
+      POSTGRES_DB: identity_service
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5433:5432"
+
+  identity-service:
+    build:
+      context: ./identity-service
+    container_name: ecom-identity-service
+    ports:
+      - "3002:3002"
+    environment:
+      DATABASE_URL: postgresql://user:password@identity-db:5432/identity_service
+      JWT_SECRET: super-secret-key
+    depends_on:
+      - identity-db
+
+  # Payment Service (Simulation)
+  payment-service:
+    build:
+      context: ./payment-service
+    container_name: ecom-payment-service
+    ports:
+      - "3003:3003"
+    environment:
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
+      PORT: 3003
+    depends_on:
+      - rabbitmq
+
+  # Nuxt 3 Frontend
+  frontend:
+    build:
+      context: ./frontend-nuxt
+    container_name: ecom-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      API_ORDER_URL: http://localhost:3001
+      API_CATALOG_URL: http://localhost:8000
+      API_IDENTITY_URL: http://localhost:3002
+      API_ORDER_INTERNAL_URL: http://order-service:3000
+      API_CATALOG_INTERNAL_URL: http://catalog-service:9000
+      API_IDENTITY_INTERNAL_URL: http://identity-service:3002
+    depends_on:
+      - order-service
+      - catalog-service
+
+  # Notification Service (Sends Emails)
+  notification-service:
+    build:
+      context: ./notification-service
+    container_name: ecom-notification-service
+    environment:
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
+      MAIL_HOST: mailhog
+      MAIL_PORT: 1025
+      CATALOG_SERVICE_URL: http://catalog-service:9000/api/products
+    depends_on:
+      - rabbitmq
+      - mailhog
+      - catalog-service
+
+  # Mailhog (SMTP Server + UI)
+  mailhog:
+    image: mailhog/mailhog
+    container_name: ecom-mailhog
+    ports:
+      - "1025:1025" # SMTP port
+      - "8025:8025" # UI port
+
+networks:
+  default:
+    name: ecom-network

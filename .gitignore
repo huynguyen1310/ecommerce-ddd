@@ -1,0 +1,93 @@
+# macOS
+.DS_Store
+
+# Node / JavaScript
+node_modules/
+npm-debug.log*
+yarn-error.log*
+.pnp.*
+.pnp
+
+# Build output
+dist/
+build/
+coverage/
+.cache/
+
+# NestJS / Nuxt / Next
+.next/
+.nuxt/
+.nuxt/**/*
+*.tsbuildinfo
+
+# Environment files (keep .env.example)
+.env
+.env.*.local
+.env.local
+.env.test
+.env.production.local
+.env.development.local
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+
+# Docker
+docker-compose.override.yml
+.docker/
+docker-compose.*.override.yml
+
+# Laravel / PHP
+/vendor/
+/storage/framework/*.key
+/storage/debugbar
+/storage/*.key
+/.phpunit.result.cache
+Homestead.yaml
+Homestead.json
+.env.backup
+
+# Composer
+composer.phar
+
+# Database
+*.sqlite
+*.sqlite3
+*.db
+*.sql
+
+# Test / coverage
+coverage/
+phpunit-result.cache
+.phpunit.result.cache
+
+# IDEs and editors
+.vscode/
+.idea/
+*.iml
+*.sublime-project
+*.sublime-workspace
+
+# OS files
+Thumbs.db
+ehthumbs.db
+
+# Misc
+*.log
+*.tmp
+*.temp
+*.pid
+
+# Sensitive secrets (if any)
+*.key
+*.pem
+
+# Temporary / local files
+/.env.local.php
+/local.env
+
+# Keep example config files tracked (uncomment if you want to ignore them)
+# !.env.example
+# !.env.example.local

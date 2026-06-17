@@ -1,0 +1,12 @@
+<?php
+
+namespace App\Core\Catalog\Domain;
+
+interface ProductRepositoryInterface
+{
+    public function findById(string $id): ?Product;
+    public function save(Product $product): void;
+    public function findBySku(string $sku): ?Product;
+    public function delete(string $id): void;
+    public function findAll(): array;
+}
