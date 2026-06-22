@@ -1,5 +1,6 @@
 const crypto = require('crypto');
 
+/** @implements {import('../../domain/ports/IMessagePublisher').IMessagePublisher} */
 class RabbitMqPublisher {
   constructor(channel, exchange) {
     this.channel = channel;

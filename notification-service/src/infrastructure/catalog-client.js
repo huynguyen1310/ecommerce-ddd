@@ -1,3 +1,4 @@
+/** @implements {import('../domain/ports/ICatalogClient').ICatalogClient} */
 class CatalogClient {
   constructor(baseUrl) {
     this.baseUrl = baseUrl;

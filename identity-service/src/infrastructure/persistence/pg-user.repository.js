@@ -1,5 +1,6 @@
 const { UserMapper } = require('./user.mapper');
 
+/** @implements {import('../../domain/ports/IUserRepository').IUserRepository} */
 class PgUserRepository {
   constructor(pool) {
     this.pool = pool;

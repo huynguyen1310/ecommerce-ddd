@@ -1,6 +1,7 @@
 <?php
 
 use App\Core\Catalog\Application\UpdateStockUseCase;
+use App\Core\Catalog\Application\Ports\EventDispatcher;
 use App\Core\Catalog\Domain\Product;
 use App\Core\Catalog\Domain\ProductRepositoryInterface;
 
@@ -10,7 +11,9 @@ test('sets stock to absolute value', function () {
     $repo->expects($this->once())->method('findById')->with('p1')->willReturn($product);
     $repo->expects($this->once())->method('save');
 
-    $useCase = new UpdateStockUseCase($repo);
+    $dispatcher = $this->createMock(EventDispatcher::class);
+
+    $useCase = new UpdateStockUseCase($repo, $dispatcher);
     $useCase->execute('p1', 100);
 
     expect($product->stock)->toBe(100);
@@ -20,8 +23,10 @@ test('throws when product not found for stock update', function () {
     $repo = $this->createMock(ProductRepositoryInterface::class);
     $repo->expects($this->once())->method('findById')->with('missing')->willReturn(null);
 
-    $useCase = new UpdateStockUseCase($repo);
+    $dispatcher = $this->createMock(EventDispatcher::class);
+
+    $useCase = new UpdateStockUseCase($repo, $dispatcher);
 
     expect(fn () => $useCase->execute('missing', 50))
-        ->toThrow(Exception::class, 'Product not found');
+        ->toThrow(\RuntimeException::class, 'Product not found');
 });

@@ -1,5 +1,6 @@
 const nodemailer = require('nodemailer');
 
+/** @implements {import('../domain/ports/IMailProvider').IMailProvider} */
 class MailProvider {
   constructor(host, port) {
     this.transporter = nodemailer.createTransport({

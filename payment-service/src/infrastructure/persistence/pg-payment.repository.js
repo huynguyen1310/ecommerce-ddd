@@ -1,6 +1,7 @@
 const crypto = require('crypto');
 const { PaymentMapper } = require('./payment.mapper');
 
+/** @implements {import('../../domain/ports/IPaymentRepository').IPaymentRepository} */
 class PgPaymentRepository {
   constructor(pool) {
     this.pool = pool;

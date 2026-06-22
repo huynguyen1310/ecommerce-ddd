@@ -2,6 +2,7 @@
 
 namespace App\Core\Catalog\Application;
 
+use App\Core\Catalog\Application\Ports\EventDispatcher;
 use App\Core\Catalog\Domain\Product;
 use App\Core\Catalog\Domain\ProductRepositoryInterface;
 use App\Core\Catalog\Domain\Exceptions\SkuAlreadyExistsException;
@@ -10,7 +11,8 @@ use Illuminate\Support\Str;
 class CreateProductAction
 {
     public function __construct(
-        private ProductRepositoryInterface $productRepository
+        private ProductRepositoryInterface $productRepository,
+        private EventDispatcher $eventDispatcher
     ) {}
 
     public function execute(string $name, string $sku, float $price, int $stock): Product
@@ -20,7 +22,7 @@ class CreateProductAction
             throw new SkuAlreadyExistsException($sku);
         }
 
-        $product = new Product(
+        $product = Product::create(
             (string) Str::uuid(),
             $name,
             $sku,
@@ -29,6 +31,10 @@ class CreateProductAction
         );
 
         $this->productRepository->save($product);
+
+        foreach ($product->releaseEvents() as $event) {
+            $this->eventDispatcher->dispatch($event);
+        }
 
         return $product;
     }

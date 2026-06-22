@@ -2,23 +2,29 @@
 
 namespace App\Core\Catalog\Application;
 
+use App\Core\Catalog\Application\Ports\EventDispatcher;
 use App\Core\Catalog\Domain\ProductRepositoryInterface;
 
 class DeductStockUseCase
 {
     public function __construct(
-        private ProductRepositoryInterface $productRepository
+        private ProductRepositoryInterface $productRepository,
+        private EventDispatcher $eventDispatcher
     ) {}
 
     public function execute(string $productId, int $quantity): void
     {
         $product = $this->productRepository->findById($productId);
-        
+
         if (!$product) {
-            throw new \Exception("Product not found");
+            throw new \RuntimeException("Product not found");
         }
 
         $product->reduceStock($quantity);
         $this->productRepository->save($product);
+
+        foreach ($product->releaseEvents() as $event) {
+            $this->eventDispatcher->dispatch($event);
+        }
     }
 }

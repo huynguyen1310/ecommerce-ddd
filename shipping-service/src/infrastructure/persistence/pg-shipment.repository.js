@@ -1,6 +1,7 @@
 const crypto = require('crypto');
 const { ShipmentMapper } = require('./shipment.mapper');
 
+/** @implements {import('../../domain/ports/IShipmentRepository').IShipmentRepository} */
 class PgShipmentRepository {
   constructor(pool) {
     this.pool = pool;

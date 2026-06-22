@@ -5,6 +5,10 @@ namespace App\Http\Controllers;
 use App\Core\Catalog\Domain\ProductRepositoryInterface;
 use App\Core\Catalog\Application\UpdateStockUseCase;
 use App\Core\Catalog\Domain\Exceptions\SkuAlreadyExistsException;
+use App\Http\Requests\CreateProductRequest;
+use App\Http\Requests\UpdateStockRequest;
+use App\Http\Resources\ProductResource;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class ProductController extends Controller
@@ -15,14 +19,14 @@ class ProductController extends Controller
         private \App\Core\Catalog\Application\CreateProductAction $createProductAction
     ) {}
 
-    public function index(Request $request)
+    public function index(Request $request): JsonResponse
     {
         $page = (int) $request->query('page', 1);
         $perPage = (int) $request->query('per_page', 12);
         $result = $this->productRepository->findAll($page, $perPage);
 
         return response()->json([
-            'data' => $result->items,
+            'data' => ProductResource::collection($result->items),
             'meta' => [
                 'total' => $result->total,
                 'page' => $result->page,
@@ -32,38 +36,28 @@ class ProductController extends Controller
         ]);
     }
 
-    public function show(string $id)
+    public function show(string $id): JsonResponse
     {
         $product = $this->productRepository->findById($id);
         if (!$product) {
             return response()->json(['error' => 'Product not found'], 404);
         }
-        return response()->json($product);
+        return response()->json(new ProductResource($product));
     }
 
-    public function updateStock(Request $request, string $id)
+    public function updateStock(UpdateStockRequest $request, string $id): JsonResponse
     {
-        $request->validate([
-            'stock' => 'required|integer|min:0',
-        ]);
-
         try {
             $this->updateStockUseCase->execute($id, $request->stock);
             return response()->json(['message' => 'Stock updated successfully']);
-        } catch (\Exception $e) {
+        } catch (\RuntimeException $e) {
             return response()->json(['error' => $e->getMessage()], 400);
         }
     }
-    public function store(Request $request)
+
+    public function store(CreateProductRequest $request): JsonResponse
     {
         try {
-            $request->validate([
-                'name' => 'required|string',
-                'sku' => 'required|string',
-                'price' => 'required|numeric|min:0',
-                'stock' => 'required|integer|min:0',
-            ]);
-
             $product = $this->createProductAction->execute(
                 $request->name,
                 $request->sku,
@@ -71,17 +65,18 @@ class ProductController extends Controller
                 (int) $request->stock
             );
 
-            return response()->json(['message' => 'Product created', 'id' => $product->id], 201);
-        } catch (\Illuminate\Validation\ValidationException $v) {
-            return response()->json(['error' => $v->errors()], 422);
+            return response()->json([
+                'message' => 'Product created',
+                'id' => $product->id,
+            ], 201);
         } catch (SkuAlreadyExistsException $e) {
             return response()->json(['error' => $e->getMessage()], 422);
-        } catch (\Exception $e) {
+        } catch (\RuntimeException $e) {
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
 
-    public function destroy(string $id)
+    public function destroy(string $id): JsonResponse
     {
         $this->productRepository->delete($id);
         return response()->json(['message' => 'Product deleted']);
