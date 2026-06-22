@@ -1,6 +1,18 @@
 version: '3.8'
 
 services:
+  # Meilisearch
+  meilisearch:
+    image: getmeili/meilisearch:v1.12
+    container_name: ecom-meilisearch
+    ports:
+      - "7700:7700"
+    environment:
+      MEILI_MASTER_KEY: master-key-ecom
+      MEILI_NO_ANALYTICS: "true"
+    volumes:
+      - meili_data:/meili_data
+
   # RabbitMQ Message Broker
   rabbitmq:
     image: rabbitmq:3-management-alpine
@@ -70,6 +82,8 @@ services:
       DB_PASSWORD: password
       APP_KEY: base64:P88YByInm5y48y/q5y5y5y5y5y5y5y5y5y5y5y5y5y5=
       RABBITMQ_HOST: rabbitmq
+      MEILISEARCH_HOST: http://meilisearch:7700
+      MEILISEARCH_KEY: master-key-ecom
       RUN_MIGRATIONS: "true"
     depends_on:
       - catalog-db
@@ -90,6 +104,8 @@ services:
       DB_PASSWORD: password
       APP_KEY: base64:P88YByInm5y48y/q5y5y5y5y5y5y5y5y5y5y5y5y5y5=
       RABBITMQ_HOST: rabbitmq
+      MEILISEARCH_HOST: http://meilisearch:7700
+      MEILISEARCH_KEY: master-key-ecom
       RUN_MIGRATIONS: "false"
     depends_on:
       - catalog-db
@@ -259,6 +275,9 @@ services:
     ports:
       - "1025:1025" # SMTP port
       - "8025:8025" # UI port
+
+volumes:
+  meili_data:
 
 networks:
   default:

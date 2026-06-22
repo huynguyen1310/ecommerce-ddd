@@ -23,7 +23,10 @@ class ProductController extends Controller
     {
         $page = (int) $request->query('page', 1);
         $perPage = (int) $request->query('per_page', 12);
-        $result = $this->productRepository->findAll($page, $perPage);
+        $search = $request->query('search');
+        $category = $request->query('category');
+
+        $result = $this->productRepository->findAll($page, $perPage, $search, $category);
 
         return response()->json([
             'data' => ProductResource::collection($result->items),
@@ -34,6 +37,11 @@ class ProductController extends Controller
                 'last_page' => $result->lastPage,
             ],
         ]);
+    }
+
+    public function categories(): JsonResponse
+    {
+        return response()->json($this->productRepository->findAllCategories());
     }
 
     public function show(string $id): JsonResponse

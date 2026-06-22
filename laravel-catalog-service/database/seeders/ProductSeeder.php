@@ -4,173 +4,65 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class ProductSeeder extends Seeder
 {
+    private array $categories = [
+        'Books', 'Courses', 'Video Tutorials', 'E-Books', 'Workshops',
+        'Certifications', 'Tools', 'Templates', 'Consulting', 'Audios',
+    ];
+
+    private array $topics = [
+        'Domain-Driven Design', 'Hexagonal Architecture', 'Event Sourcing', 'CQRS',
+        'Microservices', 'API Design', 'Clean Architecture', 'SOLID Principles',
+        'Design Patterns', 'Refactoring', 'Test-Driven Development', 'BDD',
+        'DevOps', 'CI/CD', 'Cloud Architecture', 'Serverless',
+        'Kubernetes', 'Docker', 'Terraform', 'Ansible',
+        'React', 'Vue.js', 'Angular', 'Svelte',
+        'TypeScript', 'JavaScript', 'Node.js', 'Deno',
+        'PHP', 'Laravel', 'Symfony', 'Python',
+        'Rust', 'Go', 'Java', 'Kotlin',
+        'SQL', 'NoSQL', 'Redis', 'Elasticsearch',
+        'System Design', 'Algorithms', 'Data Structures', 'Performance',
+        'Security', 'Authentication', 'Authorization', 'OAuth',
+        'GraphQL', 'REST', 'gRPC', 'WebSockets',
+        'Testing', 'Cypress', 'Playwright', 'Pest',
+        'Observability', 'OpenTelemetry', 'Prometheus', 'Grafana',
+    ];
+
     public function run(): void
     {
-        $products = [
-            [
-                'id' => '550e8400-e29b-41d4-a716-446655440001',
-                'name' => 'Domain-Driven Design with Laravel',
-                'sku' => 'DDD-LARAVEL',
-                'price' => 45.00,
-                'stock' => 100,
-                'image_url' => 'https://placehold.co/400x400/6366f1/ffffff?text=DDD+Laravel&font=raleway',
-                'description' => 'Master tactical DDD patterns in Laravel. Entities, Value Objects, Domain Events, and rich domain models with real-world e-commerce examples.',
-                'category' => 'Books',
-            ],
-            [
-                'id' => '550e8400-e29b-41d4-a716-446655440002',
-                'name' => 'Hexagonal Architecture Masterclass',
-                'sku' => 'HEX-ARCH',
-                'price' => 99.00,
-                'stock' => 50,
-                'image_url' => 'https://placehold.co/400x400/059669/ffffff?text=Hexagonal+Arch&font=raleway',
-                'description' => 'Deep dive into ports-and-adapters architecture. Structure apps for testability, maintainability, and framework independence.',
-                'category' => 'Courses',
-            ],
-            [
-                'id' => '550e8400-e29b-41d4-a716-446655440003',
-                'name' => 'Event Sourcing in Practice',
-                'sku' => 'EVENT-SRC',
-                'price' => 59.00,
-                'stock' => 75,
-                'image_url' => 'https://placehold.co/400x400/7c3aed/ffffff?text=Event+Sourcing&font=raleway',
-                'description' => 'Build event-sourced systems from scratch. Aggregates, event stores, projections, and snapshotting with PHP.',
-                'category' => 'Books',
-            ],
-            [
-                'id' => '550e8400-e29b-41d4-a716-446655440004',
-                'name' => 'CQRS for Modern Applications',
-                'sku' => 'CQRS-MODERN',
-                'price' => 49.00,
-                'stock' => 120,
-                'image_url' => 'https://placehold.co/400x400/2563eb/ffffff?text=CQRS+Modern&font=raleway',
-                'description' => 'Separate reads from writes. Implement command buses, query handlers, and materialized views for high-performance apps.',
-                'category' => 'Books',
-            ],
-            [
-                'id' => '550e8400-e29b-41d4-a716-446655440005',
-                'name' => 'Advanced PHP Testing Bundle',
-                'sku' => 'PHP-TEST',
-                'price' => 79.00,
-                'stock' => 30,
-                'image_url' => 'https://placehold.co/400x400/0891b2/ffffff?text=PHP+Testing&font=raleway',
-                'description' => 'Pest + PHPUnit mastery. Test doubles, mutation testing, property-based testing, and testing legacy code.',
-                'category' => 'Courses',
-            ],
-            [
-                'id' => '550e8400-e29b-41d4-a716-446655440006',
-                'name' => 'Microservices with Laravel',
-                'sku' => 'MS-LARAVEL',
-                'price' => 69.00,
-                'stock' => 60,
-                'image_url' => 'https://placehold.co/400x400/d97706/ffffff?text=Microservices&font=raleway',
-                'description' => 'Decompose monoliths into services. Service contracts, inter-service communication, distributed transactions, and observability.',
-                'category' => 'Courses',
-            ],
-            [
-                'id' => '550e8400-e29b-41d4-a716-446655440007',
-                'name' => 'SQL Performance Deep Dive',
-                'sku' => 'SQL-PERF',
-                'price' => 39.00,
-                'stock' => 200,
-                'image_url' => 'https://placehold.co/400x400/4f46e5/ffffff?text=SQL+Performance&font=raleway',
-                'description' => 'Query optimization, index strategies, execution plans, and database design patterns for high-throughput systems.',
-                'category' => 'Books',
-            ],
-            [
-                'id' => '550e8400-e29b-41d4-a716-446655440008',
-                'name' => 'React Frontend Architecture',
-                'sku' => 'REACT-ARCH',
-                'price' => 55.00,
-                'stock' => 85,
-                'image_url' => 'https://placehold.co/400x400/0ea5e9/ffffff?text=React+Arch&font=raleway',
-                'description' => 'Component design, state management patterns, custom hooks, and performance optimization for large-scale React apps.',
-                'category' => 'Books',
-            ],
-            [
-                'id' => '550e8400-e29b-41d4-a716-446655440009',
-                'name' => 'Docker & Kubernetes for Devs',
-                'sku' => 'DOCKER-K8S',
-                'price' => 65.00,
-                'stock' => 45,
-                'image_url' => 'https://placehold.co/400x400/dc2626/ffffff?text=Docker+K8s&font=raleway',
-                'description' => 'Containerize apps, orchestrate with Kubernetes, CI/CD pipelines, and production-ready deployment strategies.',
-                'category' => 'Courses',
-            ],
-            [
-                'id' => '550e8400-e29b-41d4-a716-446655440010',
-                'name' => 'System Design Interview Prep',
-                'sku' => 'SYS-DESIGN',
-                'price' => 89.00,
-                'stock' => 150,
-                'image_url' => 'https://placehold.co/400x400/6366f1/ffffff?text=System+Design&font=raleway',
-                'description' => 'Design scalable systems. Load balancing, caching, database sharding, CDNs, and real-world architecture case studies.',
-                'category' => 'Books',
-            ],
-            [
-                'id' => '550e8400-e29b-41d4-a716-446655440011',
-                'name' => 'TypeScript Advanced Patterns',
-                'sku' => 'TS-PATTERNS',
-                'price' => 44.00,
-                'stock' => 90,
-                'image_url' => 'https://placehold.co/400x400/7c3aed/ffffff?text=TS+Patterns&font=raleway',
-                'description' => 'Advanced generics, conditional types, template literals, and type-safe API patterns for production TypeScript.',
-                'category' => 'Books',
-            ],
-            [
-                'id' => '550e8400-e29b-41d4-a716-446655440012',
-                'name' => 'DevOps Pipeline Engineering',
-                'sku' => 'DEVOPS-PIPE',
-                'price' => 74.00,
-                'stock' => 35,
-                'image_url' => 'https://placehold.co/400x400/059669/ffffff?text=DevOps+Pipeline&font=raleway',
-                'description' => 'Build robust CI/CD pipelines. GitHub Actions, GitLab CI, artifact management, and infrastructure-as-code with Terraform.',
-                'category' => 'Courses',
-            ],
-            [
-                'id' => '550e8400-e29b-41d4-a716-446655440013',
-                'name' => 'Redis & Caching Strategies',
-                'sku' => 'REDIS-CACHE',
-                'price' => 34.00,
-                'stock' => 110,
-                'image_url' => 'https://placehold.co/400x400/dc2626/ffffff?text=Redis+Cache&font=raleway',
-                'description' => 'Cache invalidation, distributed locking, rate limiting, session storage, and real-time features with Redis.',
-                'category' => 'Books',
-            ],
-            [
-                'id' => '550e8400-e29b-41d4-a716-446655440014',
-                'name' => 'API Design with OpenAPI',
-                'sku' => 'API-OPENAPI',
-                'price' => 42.00,
-                'stock' => 70,
-                'image_url' => 'https://placehold.co/400x400/2563eb/ffffff?text=API+OpenAPI&font=raleway',
-                'description' => 'Design-first API development. OpenAPI 3.1 spec, contract testing, versioning strategies, and SDK generation.',
-                'category' => 'Books',
-            ],
-            [
-                'id' => '550e8400-e29b-41d4-a716-446655440015',
-                'name' => 'Observability with OpenTelemetry',
-                'sku' => 'OBSERVE-OTEL',
-                'price' => 58.00,
-                'stock' => 40,
-                'image_url' => 'https://placehold.co/400x400/0891b2/ffffff?text=OpenTelemetry&font=raleway',
-                'description' => 'Distributed tracing, metrics, and logging. Instrument PHP and JS apps, configure collectors, and build Grafana dashboards.',
-                'category' => 'Courses',
-            ],
-            [
-                'id' => '550e8400-e29b-41d4-a716-446655440016',
-                'name' => 'Clean Architecture for PHP',
-                'sku' => 'CLEAN-PHP',
-                'price' => 48.00,
-                'stock' => 95,
-                'image_url' => 'https://placehold.co/400x400/4f46e5/ffffff?text=Clean+PHP&font=raleway',
-                'description' => 'Apply Clean Architecture principles in PHP projects. Dependency inversion, use-case driven design, and framework decoupling.',
-                'category' => 'Books',
-            ],
-        ];
+        $products = [];
+        $usedSkus = [];
+
+        for ($i = 1; $i <= 120; $i++) {
+            $category = $this->categories[array_rand($this->categories)];
+            $topic1 = $this->topics[array_rand($this->topics)];
+            $topic2 = $this->topics[array_rand($this->topics)];
+
+            $name = $topic1 . ($i % 3 === 0 ? ' Masterclass' : ($i % 3 === 1 ? ' Fundamentals' : ' in Practice'));
+
+            $baseSku = strtoupper(Str::slug(substr($topic1, 0, 4) . '-' . substr($topic2, 0, 4)));
+            $sku = $baseSku;
+            $counter = 1;
+            while (in_array($sku, $usedSkus)) {
+                $sku = $baseSku . '-' . $counter;
+                $counter++;
+            }
+            $usedSkus[] = $sku;
+
+            $products[] = [
+                'id' => '550e8400-e29b-41d4-a716-' . str_pad((string) $i, 12, '0', STR_PAD_LEFT),
+                'name' => $name,
+                'sku' => $sku,
+                'price' => round(mt_rand(1900, 19900) / 100, 2),
+                'stock' => mt_rand(0, 250),
+                'image_url' => 'https://placehold.co/400x400/' . $this->randomColor() . '/ffffff?text=' . urlencode(substr($topic1, 0, 12)) . '&font=raleway',
+                'description' => "Comprehensive guide to $topic1 and $topic2. " . $this->randomDescription($topic1, $topic2),
+                'category' => $category,
+            ];
+        }
 
         foreach ($products as $product) {
             DB::table('products')->updateOrInsert(
@@ -187,5 +79,31 @@ class ProductSeeder extends Seeder
                 ]
             );
         }
+    }
+
+    private function randomColor(): string
+    {
+        $colors = [
+            '6366f1', '4f46e5', '7c3aed', '2563eb', '0ea5e9',
+            '059669', '0891b2', 'd97706', 'dc2626', 'db2777',
+            '9333ea', '0d9488', '15803d', '1d4ed8', 'b45309',
+            'be123c', '6d28d9', '0369a1', '65a30d', 'a21caf',
+        ];
+        return $colors[array_rand($colors)];
+    }
+
+    private function randomDescription(string $topic1, string $topic2): string
+    {
+        $parts = [
+            "Learn practical $topic1 with real-world examples.",
+            "Master $topic1 and $topic2 through hands-on projects.",
+            "From fundamentals to advanced $topic1 techniques.",
+            "Build production-ready systems with $topic1.",
+            "Deep dive into $topic1 architecture and patterns.",
+            "Enterprise-grade $topic1 strategies for modern teams.",
+            "Step-by-step $topic1 implementation guide.",
+            "Advanced $topic2 patterns combined with $topic1 best practices.",
+        ];
+        return $parts[array_rand($parts)];
     }
 }

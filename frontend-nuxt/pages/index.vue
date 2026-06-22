@@ -11,6 +11,27 @@
       </div>
     </div>
 
+    <div class="flex flex-col sm:flex-row gap-3 mb-8">
+      <div class="relative flex-1">
+        <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M11 19a8 8 0 100-16 8 8 0 000 16z"/>
+        </svg>
+        <input
+          v-model="searchQuery"
+          type="text"
+          placeholder="Search products..."
+          class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none transition-all text-sm"
+        />
+      </div>
+      <select
+        v-model="selectedCategory"
+        class="px-4 py-2.5 rounded-xl border border-gray-200 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none transition-all text-sm bg-white min-w-[160px]"
+      >
+        <option value="">All Categories</option>
+        <option v-for="cat in categories" :key="cat" :value="cat">{{ cat }}</option>
+      </select>
+    </div>
+
     <div v-if="loading" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
       <div v-for="n in 4" :key="n" class="h-80 bg-gray-100 animate-pulse rounded-xl"></div>
     </div>
@@ -77,6 +98,9 @@ const products = ref([])
 const loading = ref(true)
 const productRatings = ref({})
 const paginationMeta = ref({ total: 0, page: 1, perPage: 12, lastPage: 1 })
+const searchQuery = ref('')
+const selectedCategory = ref('')
+const categories = ref([])
 
 const visiblePages = computed(() => {
   const { page, lastPage } = paginationMeta.value
@@ -89,12 +113,20 @@ const visiblePages = computed(() => {
   return pages
 })
 
+const buildUrl = (page = 1) => {
+  const params = new URLSearchParams({ page, per_page: 12 })
+  if (searchQuery.value) params.set('search', searchQuery.value)
+  if (selectedCategory.value) params.set('category', selectedCategory.value)
+  return params
+}
+
 const fetchProducts = async (page = 1) => {
   loading.value = true
   try {
     const config = useRuntimeConfig()
     const baseUrl = process.server ? config.apiGatewayInternalUrl : config.public.apiGatewayUrl
-    const data = await $fetch(`${baseUrl}/api/products?page=${page}&per_page=12`)
+    const params = buildUrl(page)
+    const data = await $fetch(`${baseUrl}/api/products?${params}`)
     products.value = data.data
     paginationMeta.value = data.meta
     fetchAllRatings(data.data)
@@ -132,5 +164,24 @@ const fetchAllRatings = async (prods) => {
   productRatings.value = results
 }
 
-onMounted(() => fetchProducts(1))
+const fetchCategories = async () => {
+  try {
+    const config = useRuntimeConfig()
+    const baseUrl = process.server ? config.apiGatewayInternalUrl : config.public.apiGatewayUrl
+    categories.value = await $fetch(`${baseUrl}/api/products/categories`)
+  } catch {
+    // non-critical
+  }
+}
+
+let debounceTimer
+watch([searchQuery, selectedCategory], () => {
+  clearTimeout(debounceTimer)
+  debounceTimer = setTimeout(() => fetchProducts(1), 300)
+})
+
+onMounted(() => {
+  fetchProducts(1)
+  fetchCategories()
+})
 </script>

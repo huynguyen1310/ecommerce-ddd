@@ -51,6 +51,16 @@
       </div>
     </div>
 
+    <div class="flex items-center gap-3 mb-6">
+      <div class="relative flex-1">
+        <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M11 19a8 8 0 100-16 8 8 0 000 16z"/>
+        </svg>
+        <input v-model="searchQuery" type="text" placeholder="Search products..." class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none transition-all text-sm" />
+      </div>
+      <span class="text-sm text-gray-400 font-medium whitespace-nowrap">{{ paginationMeta.total }} products</span>
+    </div>
+
     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
       <table class="w-full text-left border-collapse">
         <thead class="bg-gray-50 border-b border-gray-100">
@@ -107,6 +117,12 @@
         </tbody>
       </table>
     </div>
+
+    <div v-if="paginationMeta.lastPage > 1" class="flex items-center justify-center gap-2 mt-6">
+      <button @click="goToPage(paginationMeta.page - 1)" :disabled="paginationMeta.page <= 1" class="px-4 py-2 rounded-lg border border-gray-200 text-sm font-bold transition-colors disabled:opacity-30 disabled:cursor-not-allowed hover:bg-gray-50">← Prev</button>
+      <button v-for="p in visiblePages" :key="p" @click="goToPage(p)" :class="['w-10 h-10 rounded-lg text-sm font-bold transition-colors', p === paginationMeta.page ? 'bg-indigo-600 text-white' : 'border border-gray-200 hover:bg-gray-50']">{{ p }}</button>
+      <button @click="goToPage(paginationMeta.page + 1)" :disabled="paginationMeta.page >= paginationMeta.lastPage" class="px-4 py-2 rounded-lg border border-gray-200 text-sm font-bold transition-colors disabled:opacity-30 disabled:cursor-not-allowed hover:bg-gray-50">Next →</button>
+    </div>
   </div>
 </template>
 
@@ -122,19 +138,43 @@ const products = ref([])
 const updateValues = ref({})
 const showAddModal = ref(false)
 const newProduct = ref({ name: '', sku: '', price: 0, stock: 0 })
+const searchQuery = ref('')
+const paginationMeta = ref({ total: 0, page: 1, perPage: 20, lastPage: 1 })
 
-const fetchProducts = async () => {
+const visiblePages = computed(() => {
+  const { page, lastPage } = paginationMeta.value
+  const pages = []
+  const start = Math.max(1, page - 2)
+  const end = Math.min(lastPage, page + 2)
+  for (let i = start; i <= end; i++) pages.push(i)
+  return pages
+})
+
+const buildUrl = (page = 1) => {
+  const params = new URLSearchParams({ page, per_page: 20 })
+  if (searchQuery.value) params.set('search', searchQuery.value)
+  return params
+}
+
+const fetchProducts = async (page = 1) => {
   try {
     const baseUrl = process.server ? config.apiGatewayInternalUrl : config.public.apiGatewayUrl
-    const data = await $fetch(`${baseUrl}/api/products`)
-    products.value = data
-    data.forEach(p => {
+    const data = await $fetch(`${baseUrl}/api/products?${buildUrl(page)}`)
+    products.value = data.data
+    paginationMeta.value = data.meta
+    products.value.forEach(p => {
       updateValues.value[p.id] = p.stock
     })
   } catch (err) {
     console.error('Fetch error:', err)
     notifications.error('Failed to fetch products')
   }
+}
+
+const goToPage = (page) => {
+  if (page < 1 || page > paginationMeta.value.lastPage) return
+  fetchProducts(page)
+  window.scrollTo({ top: 0, behavior: 'smooth' })
 }
 
 const addProduct = async () => {
@@ -185,7 +225,13 @@ const deleteProduct = async (id) => {
   }
 }
 
-onMounted(fetchProducts)
+let debounceTimer
+watch(searchQuery, () => {
+  clearTimeout(debounceTimer)
+  debounceTimer = setTimeout(() => fetchProducts(1), 300)
+})
+
+onMounted(() => fetchProducts(1))
 
 definePageMeta({
   middleware: 'auth'
