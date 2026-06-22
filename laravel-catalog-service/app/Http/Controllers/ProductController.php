@@ -21,6 +21,15 @@ class ProductController extends Controller
         return response()->json($products);
     }
 
+    public function show(string $id)
+    {
+        $product = $this->productRepository->findById($id);
+        if (!$product) {
+            return response()->json(['error' => 'Product not found'], 404);
+        }
+        return response()->json($product);
+    }
+
     public function updateStock(Request $request, string $id)
     {
         $request->validate([

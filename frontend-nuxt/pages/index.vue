@@ -22,10 +22,12 @@
     </div>
 
     <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-      <ProductCard 
-        v-for="product in products" 
-        :key="product.id" 
-        :product="product" 
+      <ProductCard
+        v-for="product in products"
+        :key="product.id"
+        :product="product"
+        :avg-rating="productRatings[product.id]?.avg || 0"
+        :review-count="productRatings[product.id]?.count || 0"
         @add-to-cart="cart.addToCart"
       />
     </div>
@@ -38,10 +40,10 @@ import { useNotificationStore } from '~/stores/notifications'
 
 const cart = useCartStore()
 const notifications = useNotificationStore()
-const config = useRuntimeConfig()
 
 const products = ref([])
 const loading = ref(true)
+const productRatings = ref({})
 
 const fetchProducts = async () => {
   try {
@@ -49,12 +51,33 @@ const fetchProducts = async () => {
     const baseUrl = process.server ? config.apiCatalogInternalUrl : config.public.apiCatalogUrl
     const data = await $fetch(`${baseUrl}/api/products`)
     products.value = data
+    fetchAllRatings(data)
   } catch (err) {
     console.error('Index fetch error:', err)
     notifications.error('Failed to load products')
   } finally {
     loading.value = false
   }
+}
+
+const fetchAllRatings = async (prods) => {
+  const config = useRuntimeConfig()
+  const baseUrl = process.server ? config.apiReviewInternalUrl : config.public.apiReviewUrl
+  const results = {}
+  await Promise.all(prods.map(async (p) => {
+    try {
+      const reviews = await $fetch(`${baseUrl}/products/${p.id}/reviews`)
+      if (reviews.length > 0) {
+        const sum = reviews.reduce((s, r) => s + r.rating, 0)
+        results[p.id] = { avg: Math.round(sum / reviews.length), count: reviews.length }
+      } else {
+        results[p.id] = { avg: 0, count: 0 }
+      }
+    } catch {
+      results[p.id] = { avg: 0, count: 0 }
+    }
+  }))
+  productRatings.value = results
 }
 
 onMounted(fetchProducts)

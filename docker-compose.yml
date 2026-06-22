@@ -118,6 +118,35 @@ services:
     depends_on:
       - identity-db
 
+  # PostgreSQL for Review Service
+  review-db:
+    image: postgres:15-alpine
+    container_name: ecom-review-db
+    environment:
+      POSTGRES_DB: review_service
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5434:5432"
+
+  # NestJS Review Service
+  review-service:
+    build:
+      context: ./review-service
+    container_name: ecom-review-service
+    ports:
+      - "4000:4000"
+    environment:
+      DB_HOST: review-db
+      DB_PORT: 5432
+      DB_USER: user
+      DB_PASS: password
+      DB_NAME: review_service
+      PORT: 4000
+      JWT_SECRET: super-secret-key
+    depends_on:
+      - review-db
+
   # Payment Service (Simulation)
   payment-service:
     build:
@@ -145,9 +174,12 @@ services:
       API_ORDER_INTERNAL_URL: http://order-service:3000
       API_CATALOG_INTERNAL_URL: http://catalog-service:9000
       API_IDENTITY_INTERNAL_URL: http://identity-service:3002
+      API_REVIEW_URL: http://localhost:4000
+      API_REVIEW_INTERNAL_URL: http://review-service:4000
     depends_on:
       - order-service
       - catalog-service
+      - review-service
 
   # Notification Service (Sends Emails)
   notification-service:
