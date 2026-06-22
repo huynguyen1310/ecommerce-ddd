@@ -59,12 +59,17 @@
             <span class="text-gray-400 font-mono text-xs">{{ item.quantity }}x</span>
             <span class="font-medium text-gray-700">Product ID: {{ item.productId.substring(0, 8) }}</span>
           </div>
-          <div v-if="order.status === 'SHIPPED' && tracking[order.id]" class="ml-auto flex items-center gap-3 bg-blue-50 border border-blue-200 px-4 py-2 rounded-lg">
-            <span class="text-sm">📦</span>
-            <div class="text-xs">
-              <p class="font-bold text-blue-800">{{ tracking[order.id].carrier }}</p>
-              <p class="text-blue-600 font-mono">{{ tracking[order.id].tracking_number }}</p>
+          <div class="ml-auto flex items-center gap-4">
+            <div v-if="order.status === 'SHIPPED' && tracking[order.id]" class="flex items-center gap-3 bg-blue-50 border border-blue-200 px-4 py-2 rounded-lg">
+              <span class="text-sm">📦</span>
+              <div class="text-xs">
+                <p class="font-bold text-blue-800">{{ tracking[order.id].carrier }}</p>
+                <p class="text-blue-600 font-mono">{{ tracking[order.id].tracking_number }}</p>
+              </div>
             </div>
+            <NuxtLink :to="`/orders/${order.id}`" class="text-xs font-bold text-indigo-600 hover:text-indigo-800 uppercase tracking-wider">
+              View Details &rarr;
+            </NuxtLink>
           </div>
         </div>
       </div>

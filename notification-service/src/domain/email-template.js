@@ -43,7 +43,6 @@ class EmailTemplate {
       </div>
     `;
   }
-}
 
   static formatOrderShipped(orderData, trackingNumber, carrier) {
     return `
