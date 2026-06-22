@@ -35,7 +35,7 @@ class RabbitMQOrderConsumer
             foreach ($orderData['items'] as $item) {
                 $this->deductStockUseCase->execute($item['product_id'], $item['quantity']);
                 $product = $this->productRepository->findById($item['product_id']);
-                $this->publisher->publishInventoryDeducted($orderId, $item['product_id'], $product->stock);
+                $this->publisher->publishInventoryDeducted($orderId, $item['product_id'], $item['quantity'], $product->stock);
             }
             \Illuminate\Support\Facades\DB::commit();
         } catch (\Exception $e) {

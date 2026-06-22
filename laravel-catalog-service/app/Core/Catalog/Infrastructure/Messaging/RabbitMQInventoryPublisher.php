@@ -7,7 +7,7 @@ use PhpAmqpLib\Message\AMQPMessage;
 
 class RabbitMQInventoryPublisher
 {
-    public function publishInventoryDeducted(string $orderId, string $productId, int $remainingStock): void
+    public function publishInventoryDeducted(string $orderId, string $productId, int $quantityDeducted, int $remainingStock): void
     {
         $this->publish('inventory.deducted', [
             'event_id' => uniqid(),
@@ -15,12 +15,12 @@ class RabbitMQInventoryPublisher
             'data' => [
                 'order_id' => $orderId,
                 'product_id' => $productId,
-                'quantity_deducted' => 1,
+                'quantity_deducted' => $quantityDeducted,
                 'remaining_stock' => $remainingStock,
                 // Passing items back so downstream services (Payment) can pass them back 
                 // to Catalog if a compensating transaction (restock) is needed.
                 'items' => [
-                    ['product_id' => $productId, 'quantity' => 1]
+                    ['product_id' => $productId, 'quantity' => $quantityDeducted]
                 ]
             ]
         ]);
