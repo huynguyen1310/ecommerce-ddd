@@ -56,11 +56,14 @@
 
 <script setup>
 import { useNotificationStore } from '~/stores/notifications'
+import { useAuthStore } from '~/stores/auth'
 
 const route = useRoute()
 const router = useRouter()
 const config = useRuntimeConfig()
 const notifications = useNotificationStore()
+const auth = useAuthStore()
+const authHeaders = () => auth.token ? { Authorization: `Bearer ${auth.token}` } : {}
 
 const orderId = route.params.id
 const orderData = ref(null)
@@ -70,7 +73,7 @@ const error = ref(null)
 
 const fetchOrderData = async (retryCount = 0) => {
   try {
-    const response = await fetch(`${config.public.apiPaymentUrl}/payments/${orderId}`)
+    const response = await fetch(`${config.public.apiGatewayUrl}/payments/${orderId}`, { headers: authHeaders() })
     if (response.ok) {
       orderData.value = await response.json()
       loading.value = false
@@ -91,9 +94,9 @@ const fetchOrderData = async (retryCount = 0) => {
 const processPayment = async (status) => {
   processing.value = true
   try {
-    const response = await fetch(`${config.public.apiPaymentUrl}/payments/${orderId}/process`, {
+    const response = await fetch(`${config.public.apiGatewayUrl}/payments/${orderId}/process`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...authHeaders() },
       body: JSON.stringify({ status })
     })
 

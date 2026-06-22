@@ -84,10 +84,12 @@
 </template>
 
 <script setup>
+import { useAuthStore } from '~/stores/auth'
+const auth = useAuthStore()
 const route = useRoute()
 const config = useRuntimeConfig()
-const orderBaseUrl = process.server ? config.apiOrderInternalUrl : config.public.apiOrderUrl
-const shipBaseUrl = process.server ? config.apiShippingInternalUrl : config.public.apiShippingUrl
+const apiBaseUrl = process.server ? config.apiGatewayInternalUrl : config.public.apiGatewayUrl
+const authHeaders = () => auth.token ? { Authorization: `Bearer ${auth.token}` } : {}
 
 const order = ref(null)
 const tracking = ref(null)
@@ -133,7 +135,7 @@ const formatDate = (dateStr) => {
 
 onMounted(async () => {
   try {
-    const data = await $fetch(`${orderBaseUrl}/orders/${route.params.id}`)
+    const data = await $fetch(`${apiBaseUrl}/orders/${route.params.id}`, { headers: authHeaders() })
     order.value = data
   } catch {
     error.value = true
@@ -144,7 +146,7 @@ onMounted(async () => {
 
   if (order.value.status === 'SHIPPED') {
     try {
-      const data = await $fetch(`${shipBaseUrl}/shipments/${order.value.id}`)
+      const data = await $fetch(`${apiBaseUrl}/shipments/${order.value.id}`, { headers: authHeaders() })
       tracking.value = data
     } catch { /* not found yet */ }
   }

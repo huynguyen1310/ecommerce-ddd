@@ -114,8 +114,7 @@ const auth = useAuthStore()
 const notifications = useNotificationStore()
 const route = useRoute()
 const config = useRuntimeConfig()
-const catalogBaseUrl = process.server ? config.apiCatalogInternalUrl : config.public.apiCatalogUrl
-const reviewBaseUrl = process.server ? config.apiReviewInternalUrl : config.public.apiReviewUrl
+const apiBaseUrl = process.server ? config.apiGatewayInternalUrl : config.public.apiGatewayUrl
 
 const product = ref(null)
 const reviews = ref([])
@@ -132,7 +131,7 @@ const authHeaders = () => {
 
 onMounted(async () => {
   try {
-    const data = await $fetch(`${catalogBaseUrl}/api/products/${route.params.id}`)
+    const data = await $fetch(`${apiBaseUrl}/api/products/${route.params.id}`)
     product.value = data
   } catch {
     error.value = true
@@ -142,7 +141,7 @@ onMounted(async () => {
   loading.value = false
 
   try {
-    const data = await $fetch(`${reviewBaseUrl}/products/${route.params.id}/reviews`)
+    const data = await $fetch(`${apiBaseUrl}/products/${route.params.id}/reviews`)
     reviews.value = data
   } catch {
     console.error('Failed to load reviews')
@@ -154,8 +153,9 @@ onMounted(async () => {
 async function submitReview() {
   if (!newRating.value || !newText.value.trim()) return
   try {
-    const data = await $fetch(`${reviewBaseUrl}/reviews`, {
+    const data = await $fetch(`${apiBaseUrl}/reviews`, {
       method: 'POST',
+      headers: authHeaders(),
       body: {
         productId: route.params.id,
         customerId: auth.user.id,
@@ -173,7 +173,7 @@ async function submitReview() {
 
 async function deleteReview(id) {
   try {
-    await $fetch(`${reviewBaseUrl}/reviews/${id}`, {
+    await $fetch(`${apiBaseUrl}/reviews/${id}`, {
       method: 'DELETE',
       headers: authHeaders(),
     })

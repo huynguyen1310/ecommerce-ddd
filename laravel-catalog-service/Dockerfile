@@ -1,4 +1,4 @@
-FROM php:8.2-fpm-alpine
+FROM php:8.3-fpm-alpine
 
 RUN apk add --no-cache \
     libpng-dev \
@@ -24,7 +24,7 @@ RUN mkdir -p bootstrap/cache storage/framework/cache storage/framework/sessions 
     chmod -R 775 bootstrap/cache storage public
 
 # Install dependencies with security audit disabled for the prototype
-RUN composer install --no-interaction --no-scripts --no-progress --prefer-dist --no-security-blocking
+RUN composer install --no-interaction --no-scripts --no-progress --prefer-dist --no-dev --no-security-blocking
 
 RUN chmod +x entrypoint.sh
 

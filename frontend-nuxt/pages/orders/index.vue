@@ -90,11 +90,13 @@ const loading = ref(true)
 const tracking = ref({})
 let refreshInterval = null
 
+const authHeaders = () => auth.token ? { Authorization: `Bearer ${auth.token}` } : {}
+
 const fetchOrders = async () => {
   try {
     const customerId = auth.user?.id || '550e8400-e29b-41d4-a716-446655440100'
-    const baseUrl = process.server ? config.apiOrderInternalUrl : config.public.apiOrderUrl
-    const data = await $fetch(`${baseUrl}/orders/customer/${customerId}`)
+    const baseUrl = process.server ? config.apiGatewayInternalUrl : config.public.apiGatewayUrl
+    const data = await $fetch(`${baseUrl}/orders/customer/${customerId}`, { headers: authHeaders() })
     orders.value = data
     fetchTracking(data)
   } catch (err) {
@@ -107,11 +109,11 @@ const fetchOrders = async () => {
 const fetchTracking = async (orderList) => {
   const shipped = orderList.filter(o => o.status === 'SHIPPED')
   if (shipped.length === 0) return
-  const shipBaseUrl = process.server ? config.apiShippingInternalUrl : config.public.apiShippingUrl
+  const shipBaseUrl = process.server ? config.apiGatewayInternalUrl : config.public.apiGatewayUrl
   const results = {}
   await Promise.all(shipped.map(async (o) => {
     try {
-      const data = await $fetch(`${shipBaseUrl}/shipments/${o.id}`)
+      const data = await $fetch(`${shipBaseUrl}/shipments/${o.id}`, { headers: authHeaders() })
       results[o.id] = data
     } catch { /* not found yet */ }
   }))

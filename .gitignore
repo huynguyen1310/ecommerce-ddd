@@ -43,10 +43,10 @@ docker-compose.override.yml
 docker-compose.*.override.yml
 
 # Laravel / PHP
-/vendor/
-/storage/framework/*.key
-/storage/debugbar
-/storage/*.key
+vendor/
+storage/framework/*.key
+storage/debugbar
+storage/*.key
 /.phpunit.result.cache
 Homestead.yaml
 Homestead.json

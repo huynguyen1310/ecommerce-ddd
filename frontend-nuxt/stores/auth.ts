@@ -8,7 +8,7 @@ export const useAuthStore = defineStore('auth', {
   actions: {
     async login(email, password) {
       const config = useRuntimeConfig()
-      const baseUrl = process.server ? config.apiIdentityInternalUrl : config.public.apiIdentityUrl
+      const baseUrl = process.server ? config.apiGatewayInternalUrl : config.public.apiGatewayUrl
       try {
         const data = await $fetch(`${baseUrl}/login`, {
           method: 'POST',
@@ -29,7 +29,7 @@ export const useAuthStore = defineStore('auth', {
     },
     async register(email, password) {
       const config = useRuntimeConfig()
-      const baseUrl = process.server ? config.apiIdentityInternalUrl : config.public.apiIdentityUrl
+      const baseUrl = process.server ? config.apiGatewayInternalUrl : config.public.apiGatewayUrl
       try {
         await $fetch(`${baseUrl}/register`, {
           method: 'POST',

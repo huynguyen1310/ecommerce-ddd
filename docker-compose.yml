@@ -215,19 +215,25 @@ services:
     ports:
       - "3000:3000"
     environment:
-      API_ORDER_URL: http://localhost:3001
-      API_CATALOG_URL: http://localhost:8000
-      API_IDENTITY_URL: http://localhost:3002
-      API_ORDER_INTERNAL_URL: http://order-service:3000
-      API_CATALOG_INTERNAL_URL: http://catalog-service:9000
-      API_IDENTITY_INTERNAL_URL: http://identity-service:3002
-      API_REVIEW_URL: http://localhost:4000
-      API_REVIEW_INTERNAL_URL: http://review-service:4000
-      API_SHIPPING_URL: http://localhost:4001
-      API_SHIPPING_INTERNAL_URL: http://shipping-service:4001
+      API_GATEWAY_URL: http://localhost:8080
+      API_GATEWAY_INTERNAL_URL: http://api-gateway:8080
+    depends_on:
+      - api-gateway
+
+  # API Gateway (Centralized Auth + Routing)
+  api-gateway:
+    build:
+      context: ./api-gateway
+    container_name: ecom-api-gateway
+    ports:
+      - "8080:8080"
+    environment:
+      JWT_SECRET: super-secret-key
     depends_on:
       - order-service
       - catalog-service
+      - identity-service
+      - payment-service
       - review-service
       - shipping-service
 

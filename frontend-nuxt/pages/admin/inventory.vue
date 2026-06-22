@@ -112,8 +112,11 @@
 
 <script setup>
 import { useNotificationStore } from '~/stores/notifications'
+import { useAuthStore } from '~/stores/auth'
+const auth = useAuthStore()
 const notifications = useNotificationStore()
 const config = useRuntimeConfig()
+const authHeaders = () => auth.token ? { Authorization: `Bearer ${auth.token}` } : {}
 
 const products = ref([])
 const updateValues = ref({})
@@ -122,7 +125,7 @@ const newProduct = ref({ name: '', sku: '', price: 0, stock: 0 })
 
 const fetchProducts = async () => {
   try {
-    const baseUrl = process.server ? config.apiCatalogInternalUrl : config.public.apiCatalogUrl
+    const baseUrl = process.server ? config.apiGatewayInternalUrl : config.public.apiGatewayUrl
     const data = await $fetch(`${baseUrl}/api/products`)
     products.value = data
     data.forEach(p => {
@@ -136,9 +139,10 @@ const fetchProducts = async () => {
 
 const addProduct = async () => {
   try {
-    const baseUrl = process.server ? config.apiCatalogInternalUrl : config.public.apiCatalogUrl
+    const baseUrl = process.server ? config.apiGatewayInternalUrl : config.public.apiGatewayUrl
     await $fetch(`${baseUrl}/api/products`, {
       method: 'POST',
+      headers: authHeaders(),
       body: newProduct.value
     })
     notifications.success('Product created successfully!')
@@ -153,9 +157,10 @@ const addProduct = async () => {
 const updateStock = async (id) => {
   const newStock = updateValues.value[id]
   try {
-    const baseUrl = process.server ? config.apiCatalogInternalUrl : config.public.apiCatalogUrl
+    const baseUrl = process.server ? config.apiGatewayInternalUrl : config.public.apiGatewayUrl
     await $fetch(`${baseUrl}/api/products/${id}/stock`, {
       method: 'PATCH',
+      headers: authHeaders(),
       body: { stock: newStock }
     })
     notifications.success('Stock updated!')
@@ -168,9 +173,10 @@ const updateStock = async (id) => {
 const deleteProduct = async (id) => {
   if (!confirm('Are you sure you want to delete this product?')) return
   try {
-    const baseUrl = process.server ? config.apiCatalogInternalUrl : config.public.apiCatalogUrl
+    const baseUrl = process.server ? config.apiGatewayInternalUrl : config.public.apiGatewayUrl
     await $fetch(`${baseUrl}/api/products/${id}`, {
-      method: 'DELETE'
+      method: 'DELETE',
+      headers: authHeaders()
     })
     notifications.success('Product deleted')
     fetchProducts()

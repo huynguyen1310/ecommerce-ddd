@@ -48,7 +48,7 @@ const productRatings = ref({})
 const fetchProducts = async () => {
   try {
     const config = useRuntimeConfig()
-    const baseUrl = process.server ? config.apiCatalogInternalUrl : config.public.apiCatalogUrl
+    const baseUrl = process.server ? config.apiGatewayInternalUrl : config.public.apiGatewayUrl
     const data = await $fetch(`${baseUrl}/api/products`)
     products.value = data
     fetchAllRatings(data)
@@ -62,7 +62,7 @@ const fetchProducts = async () => {
 
 const fetchAllRatings = async (prods) => {
   const config = useRuntimeConfig()
-  const baseUrl = process.server ? config.apiReviewInternalUrl : config.public.apiReviewUrl
+  const baseUrl = process.server ? config.apiGatewayInternalUrl : config.public.apiGatewayUrl
   const results = {}
   await Promise.all(prods.map(async (p) => {
     try {
