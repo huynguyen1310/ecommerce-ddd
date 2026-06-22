@@ -1,6 +1,31 @@
 # RabbitMQ Event Schema Definitions
 
-This document defines the standard JSON payload for cross-service communication.
+Standard JSON payloads for cross-service communication.
+
+## Event Flow
+
+```mermaid
+graph TB
+  O[Order Service] -->|order.created| R[RabbitMQ<br/>Topic: events]
+  R --> C[Catalog Worker]
+  R --> P[Payment Service]
+  R --> N[Notification Service]
+
+  C -->|inventory.deducted| R
+  C -->|inventory.insufficient| R
+  R --> O
+
+  F[Frontend] -->|POST pay| P
+  P -->|payment.completed| R
+  P -->|payment.failed| R
+  R --> O
+  R --> S[Shipping Service]
+  R --> C
+
+  S -->|order.shipped| R
+  R --> O
+  R --> N
+```
 
 ## 1. Order Service Events
 

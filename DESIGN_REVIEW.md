@@ -500,12 +500,24 @@ Current architecture **supports this future transition** if you:
 
 ## 📊 Hexagonal Maturity Score
 
-```
-NestJS Order Service:    ████████░░ 8.5/10
-Laravel Catalog:         ███████░░░ 7.0/10
-Notification:            ████░░░░░░ 4.0/10
-──────────────────────────────────────
-Average:                 ███████░░░ 6.5/10
+```mermaid
+%%{init: {"bar": {"barWidth": 20}}}%%
+gantt
+    title Hexagonal Maturity
+    dateFormat  X
+    axisFormat  %d
+    
+    section NestJS Order
+    8.5/10 : 0, 85
+    
+    section Laravel Catalog
+    7.0/10 : 0, 70
+    
+    section Notification
+    4.0/10 : 0, 40
+    
+    section Average
+    6.5/10 : 0, 65
 ```
 
 **Target**: 9+/10 (production-ready hexagonal)
@@ -588,12 +600,27 @@ Your architecture is **fundamentally sound** but has **boundary enforcement gaps
 
 ### Architecture Maturity Before vs After
 
-```
-BEFORE                           AFTER
-├─ NestJS:    8.5/10    →    9.0/10 ✅
-├─ Laravel:   7.0/10    →    8.5/10 ✅
-├─ Notification: 4.0/10 →    7.5/10 ✅
-└─ Average:   6.5/10    →    8.3/10 ✅
+```mermaid
+gantt
+    title Hexagonal Maturity — Before vs After
+    dateFormat  X
+    axisFormat  %d
+    
+    section NestJS Order
+    Before (8.5) : 0, 85
+    After (9.0) : 0, 90
+    
+    section Laravel Catalog
+    Before (7.0) : 0, 70
+    After (8.5) : 0, 85
+    
+    section Notification
+    Before (4.0) : 0, 40
+    After (7.5) : 0, 75
+    
+    section Average
+    Before (6.5) : 0, 65
+    After (8.3) : 0, 83
 ```
 
 ---

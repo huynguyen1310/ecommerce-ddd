@@ -28,50 +28,109 @@ Laravel's speed comes from Eloquent. Fighting Active Record with strict Hexagona
 ## File-by-File Breakdown
 
 ### NestJS: Order Service + Review Service
-| File | Responsibility |
-|------|---------------|
-| `domain/*.entity.ts` | Pure aggregate root. Zero framework imports. |
-| `domain/*.repository.interface.ts` | Port: what domain needs from persistence. |
-| `domain/ports/*.interface.ts` | Port: what domain needs from outside (e.g. message publisher). |
-| `application/*.use-case.ts` | Orchestrates domain logic. Injected with ports. |
-| `application/dtos/*.dto.ts` | Boundary contracts for input/output. |
-| `infrastructure/persistence/*.repository.ts` | Adapter: implements repository port via TypeORM. |
-| `infrastructure/persistence/*.mapper.ts` | Anti-corruption: ORM entity ↔ domain entity. |
-| `infrastructure/persistence/*.orm-entity.ts` | TypeORM entity (DB schema). |
-| `infrastructure/messaging/*.ts` | Adapter: RabbitMQ publisher/consumer. |
+
+```mermaid
+graph TB
+  subgraph Interface
+    CTRL["Controller<br/>REST handlers"]
+  end
+  subgraph Application
+    UC["Use Case<br/>Orchestration"]
+    DTO["DTOs<br/>Boundary contracts"]
+  end
+  subgraph Domain
+    ENT["Entity<br/>Pure aggregate root"]
+    PORT["Ports<br/>Repository + Publisher interfaces"]
+  end
+  subgraph Infrastructure
+    REPO["Repository<br/>TypeORM adapter"]
+    MAP["Mapper<br/>ORM ↔ Domain"]
+    ORM["ORM Entity<br/>DB schema"]
+    MQ["Messaging<br/>RabbitMQ adapter"]
+  end
+  CTRL --> UC
+  UC --> PORT & DTO
+  PORT --> REPO & MQ
+  REPO --> MAP --> ORM
+```
 
 ### Laravel: Catalog Service
-| File | Responsibility |
-|------|---------------|
-| `Core/Catalog/Domain/Product.php` | Domain model with stock rules. Uses domain exceptions. |
-| `Core/Catalog/Domain/ProductRepositoryInterface.php` | Port for persistence. |
-| `Core/Catalog/Application/*UseCase.php` | Application logic (create, deduct, restock). |
-| `Core/Catalog/Infrastructure/Persistence/*.php` | Eloquent adapter + mapper. |
-| `Core/Catalog/Infrastructure/Messaging/*.php` | RabbitMQ publisher/consumer. |
-| `Http/Controllers/ProductController.php` | HTTP interface only. Delegates to use cases. |
+
+```mermaid
+graph TB
+  subgraph Interface
+    CTRL["ProductController<br/>HTTP only"]
+  end
+  subgraph Application
+    ACT["Actions<br/>CreateProduct / DeductStock / ..."]
+  end
+  subgraph Domain
+    PROD["Product entity<br/>Stock rules"]
+    REPOIF["ProductRepositoryInterface<br/>Port"]
+  end
+  subgraph Infrastructure
+    ELQ["EloquentProductRepository<br/>Adapter"]
+    MAP["ProductMapper<br/>Eloquent ↔ Domain"]
+    MQ["Messaging<br/>RabbitMQ consumer/publisher"]
+    MS["Meilisearch<br/>Search index"]
+  end
+  CTRL --> ACT
+  ACT --> REPOIF
+  REPOIF --> ELQ & MQ
+  ELQ --> MAP
+  ELQ --> MS
+```
 
 ### Node.js: Identity, Payment, Shipping
-| File | Responsibility |
-|------|---------------|
-| `domain/*.entity.js` | Domain object (plain JS class). |
-| `domain/*.repository.js` | Interface contract (throws on unimplemented). |
-| `application/*.use-case.js` | Business logic, orchestration. |
-| `application/dtos/*.dto.js` | Input DTOs. |
-| `infrastructure/persistence/*.repository.js` | PostgreSQL adapter. |
-| `infrastructure/persistence/*.mapper.js` | Row ↔ domain mapper. |
-| `infrastructure/messaging/*.js` | RabbitMQ consumer/publisher. |
-| `interface/*.controller.js` | Express route handlers. |
-| `index.js` | Composition root (wiring only). |
+
+```mermaid
+graph TB
+  subgraph Interface
+    CTRL["Controller<br/>Express routes"]
+  end
+  subgraph Application
+    UC["Use Case<br/>Business logic"]
+    DTO["DTOs<br/>Input contracts"]
+  end
+  subgraph Domain
+    ENT["Entity<br/>Plain JS class"]
+    REPOIF["Repository interface"]
+  end
+  subgraph Infrastructure
+    REPO["Repository<br/>PostgreSQL adapter"]
+    MAP["Mapper<br/>Row ↔ Domain"]
+    MQ["Messaging<br/>RabbitMQ adapter"]
+  end
+  subgraph Boot
+    INDEX["index.js<br/>Composition root"]
+  end
+  CTRL --> UC
+  UC --> REPOIF & DTO
+  REPOIF --> REPO & MQ
+  REPO --> MAP
+  INDEX --> CTRL & UC & REPO & MQ & MAP
+```
 
 ### Notification Service
-| File | Responsibility |
-|------|---------------|
-| `domain/email-template.js` | Rich HTML email formatting. Pure. |
-| `application/send-order-email.use-case.js` | Orchestrates catalog enrichment + email for `order.created`. |
-| `application/send-shipped-email.use-case.js` | Shipping confirmation email for `order.shipped`. |
-| `infrastructure/rabbitmq-consumer.js` | Listens for `order.created` and `order.shipped`. Dispatches by routing key. |
-| `infrastructure/catalog-client.js` | Fetches product names via HTTP. |
-| `infrastructure/mail-provider.js` | Nodemailer to Mailhog. |
+
+```mermaid
+graph TB
+  subgraph Domain
+    TEMPLATE["EmailTemplate<br/>Rich HTML formatting"]
+  end
+  subgraph Application
+    SENDORDER["SendOrderEmailUseCase<br/>order.created"]
+    SENDSHIP["SendShippedEmailUseCase<br/>order.shipped"]
+  end
+  subgraph Infrastructure
+    MQ["RabbitMQ Consumer<br/>Listens order.created / order.shipped"]
+    CAT["CatalogClient<br/>HTTP product names"]
+    MAIL["MailProvider<br/>Nodemailer → Mailhog"]
+  end
+  MQ --> SENDORDER & SENDSHIP
+  SENDORDER --> TEMPLATE & CAT & MAIL
+  SENDSHIP --> TEMPLATE & MAIL
+```
 
 ---
 
@@ -80,13 +139,32 @@ Laravel's speed comes from Eloquent. Fighting Active Record with strict Hexagona
 ### Choreography Saga (no orchestrator)
 Each service reacts to events via RabbitMQ topic exchange `events`:
 
-```
-order.created       → Catalog (deduct stock), Payment (create pending), Notification (confirm email)
-inventory.deducted  → Order (acknowledge)
-inventory.insufficient → Order (cancel)
-payment.completed   → Order (mark PAID), Shipping (create shipment)
-payment.failed      → Order (cancel), Catalog (restock)
-order.shipped       → Order (mark SHIPPED), Notification (shipped email)
+```mermaid
+graph LR
+  subgraph Events
+    OC["order.created"]
+    ID["inventory.deducted"]
+    II["inventory.insufficient"]
+    PC["payment.completed"]
+    PF["payment.failed"]
+    OS["order.shipped"]
+  end
+
+  OC --> C[Catalog<br/>deduct stock]
+  OC --> P[Payment<br/>create pending]
+  OC --> N[Notification<br/>confirm email]
+
+  ID --> O1[Order<br/>acknowledge]
+  II --> O2[Order<br/>cancel]
+
+  PC --> O3[Order<br/>mark PAID]
+  PC --> S[Shipping<br/>create shipment]
+
+  PF --> O4[Order<br/>cancel]
+  PF --> C2[Catalog<br/>restock]
+
+  OS --> O5[Order<br/>mark SHIPPED]
+  OS --> N2[Notification<br/>shipped email]
 ```
 
 ### Durable queues per service
@@ -113,8 +191,13 @@ Shared-nothing: services only communicate via RabbitMQ. No cross-service DB acce
 
 ### Repository + Mapper
 Domain never sees ORM/DB objects. Mapper converts at boundary:
-```
-DB row → ORM Entity → Mapper → Domain Entity → Use Case
+
+```mermaid
+graph LR
+  DB[(Database)] --> ORM[ORM Entity]
+  ORM --> MAP[Mapper<br/>Anti-corruption]
+  MAP --> DOM[Domain Entity]
+  DOM --> UC[Use Case]
 ```
 
 ### Use Cases as single-responsibility entry points

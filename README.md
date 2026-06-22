@@ -1,6 +1,56 @@
-# E-commerce DDD & Hexagonal Architecture Prototype
+# E-commerce DDD & Hexagonal Architecture
 
-Polyglot microservices ecosystem demonstrating **Domain-Driven Design (DDD)**, **Hexagonal Architecture (Ports & Adapters)**, and **Event-Driven** communication via choreography saga.
+Polyglot microservices — **DDD**, **Hexagonal (Ports & Adapters)**, **Event-Driven** choreography saga.
+
+## Architecture
+
+```mermaid
+graph TB
+  subgraph Frontend
+    NUXT["Nuxt 3 SPA/SSR<br/>:3000"]
+  end
+
+  subgraph Gateway
+    APIGW["API Gateway<br/>Express :8080"]
+  end
+
+  subgraph Backend
+    ORDER["Order Service<br/>NestJS :3001"]
+    CAT["Catalog Service<br/>Laravel :8000"]
+    ID["Identity Service<br/>Express :3002"]
+    PAY["Payment Service<br/>Express :3003"]
+    RVW["Review Service<br/>NestJS :4000"]
+    SHP["Shipping Service<br/>Express :4001"]
+    NOTIF["Notification Service<br/>Node.js"]
+  end
+
+  subgraph Data
+    RABBIT["RabbitMQ :5672"]
+    MEILI["Meilisearch :7700"]
+    MYSQL[("Catalog DB<br/>MySQL")]
+    PG1[("Order DB<br/>PostgreSQL")]
+    PG2[("Identity DB<br/>PostgreSQL")]
+    PG3[("Payment DB<br/>PostgreSQL")]
+    PG4[("Review DB<br/>PostgreSQL")]
+    PG5[("Shipping DB<br/>PostgreSQL")]
+  end
+
+  NUXT --> APIGW
+  APIGW --> ORDER & CAT & ID & PAY & RVW & SHP
+  ORDER --> RABBIT
+  CAT --> RABBIT & MEILI
+  ID --> RABBIT
+  PAY --> RABBIT
+  SHP --> RABBIT
+  NOTIF --> RABBIT
+  RABBIT --> CAT & PAY & NOTIF & ORDER & SHP
+  ORDER --> PG1
+  CAT --> MYSQL
+  ID --> PG2
+  PAY --> PG3
+  RVW --> PG4
+  SHP --> PG5
+```
 
 ## Services
 
@@ -8,45 +58,53 @@ Polyglot microservices ecosystem demonstrating **Domain-Driven Design (DDD)**, *
 |---------|-------|----|------|---------|
 | **Order** | NestJS | PostgreSQL | 3001 | Strict Hexagonal |
 | **Catalog** | Laravel | MySQL | 8000 | Pragmatic DDD |
-| **Identity** | Node.js (Express) | PostgreSQL | 3002 | Hexagonal |
-| **Payment** | Node.js (Express) | PostgreSQL | 3003 | Hexagonal |
-| **Notification** | Node.js | — | — | Hexagonal |
+| **Identity** | Express | PostgreSQL | 3002 | Hexagonal |
+| **Payment** | Express | PostgreSQL | 3003 | Hexagonal |
 | **Review** | NestJS | PostgreSQL | 4000 | Strict Hexagonal |
-| **Shipping** | Node.js (Express) | PostgreSQL | 4001 | Hexagonal |
+| **Shipping** | Express | PostgreSQL | 4001 | Hexagonal |
+| **Notification** | Node.js | — | — | Hexagonal |
 | **Frontend** | Nuxt 3 | — | 3000 | SPA/SSR |
 
 ## Saga Event Flow
 
-```
-order.created
-  → Catalog: deduct stock → inventory.deducted / inventory.insufficient
-  → Payment: create PENDING payment entry
-  → Notification: send order confirmation email
+```mermaid
+sequenceDiagram
+  participant F as Frontend
+  participant O as Order
+  participant R as RabbitMQ
+  participant C as Catalog
+  participant P as Payment
+  participant N as Notification
+  participant S as Shipping
 
-payment.completed (user clicks Pay)
-  → Order: status → PAID
-  → Shipping: create shipment, publish order.shipped
-
-order.shipped
-  → Order: status → SHIPPED
-  → Notification: send shipped email with tracking
-
-payment.failed
-  → Order: status → CANCELLED
-  → Catalog: restock items
+  F->>O: POST /orders
+  O->>R: publish order.created
+  R-->>C: consume order.created
+  R-->>P: consume order.created
+  R-->>N: consume order.created
+  C->>R: publish inventory.deducted/inventory.insufficient
+  F->>P: POST pay
+  P->>R: publish payment.completed / payment.failed
+  R-->>O: consume payment.completed
+  O->>R: publish order.shipped
+  R-->>S: consume payment.completed
+  S->>R: publish order.shipped
+  R-->>N: consume order.shipped
 ```
 
 ## Access Points
 
-- **Frontend**: http://localhost:3000
-- **RabbitMQ UI**: http://localhost:15672 (`guest`/`guest`)
-- **Mailhog UI**: http://localhost:8025
-- **Order API**: http://localhost:3001/orders
-- **Catalog API**: http://localhost:8000/api/products
-- **Identity API**: http://localhost:3002 (POST /register, POST /login)
-- **Payment API**: http://localhost:3003/payments/:orderId
-- **Review API**: http://localhost:4000/products/:id/reviews
-- **Shipping API**: http://localhost:4001/shipments/:orderId
+| Service | URL |
+|---------|-----|
+| **Frontend** | http://localhost:3000 |
+| **Catalog** | http://localhost:8000/api/products |
+| **Order** | http://localhost:3001/orders |
+| **Identity** | http://localhost:3002 (POST /register, /login) |
+| **Payment** | http://localhost:3003/payments/:orderId |
+| **Review** | http://localhost:4000/products/:id/reviews |
+| **Shipping** | http://localhost:4001/shipments/:orderId |
+| **RabbitMQ UI** | http://localhost:15672 (guest/guest) |
+| **Mailhog UI** | http://localhost:8025 |
 
 ## Getting Started
 
@@ -56,10 +114,30 @@ docker compose up --build
 
 Default admin: `admin@example.com` / `admin`
 
-## Key Architectural Decisions
+## Project Structure
 
-- **Hexagonal in NestJS** for Order + Review: DI-native framework, strict port/adapter separation, mappers keep domain pure.
-- **Pragmatic DDD in Laravel** for Catalog: bounded contexts under `app/Core/Catalog`, leverages Eloquent speed while preventing domain leaks.
-- **Hexagonal in Node.js** for Identity/Payment/Shipping: domain entities, use cases, repository pattern, manual composition root.
-- **Choreography saga** via RabbitMQ topics: no orchestrator, each service reacts to events. Temporal decoupling.
-- **No direct DB sharing**: services communicate only through events. Shared-nothing per service.
+```mermaid
+graph LR
+  subgraph Core
+    DOMAIN["Domain<br/>Entities + Rules"]
+    APP["Application<br/>Use Cases + DTOs"]
+  end
+  subgraph Infrastructure
+    INFRA["Adapters<br/>DB / MQ / HTTP"]
+  end
+  subgraph Interface
+    API["Controllers<br/>REST endpoints"]
+  end
+  API --> APP --> DOMAIN
+  APP --> INFRA
+  INFRA --> DB[(Database)] & MQ[(RabbitMQ)]
+```
+
+## Key Decisions
+
+- **Hexagonal in NestJS**: DI-native, strict port/adapter separation
+- **Pragmatic DDD in Laravel**: Bounded contexts under `app/Core/Catalog`, Eloquent speed without domain leaks
+- **Node.js Hexagonal**: Manual composition root, domain entities, use cases
+- **Choreography saga**: No orchestrator, each service reacts to events
+- **Meilisearch**: Full-text search for catalog (lightweight alternative to Elasticsearch)
+- **Shared-nothing**: Services communicate only through events

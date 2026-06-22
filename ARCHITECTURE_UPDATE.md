@@ -78,32 +78,36 @@
 
 ## Saga Flow (Current)
 
-```
-[Frontend] POST /orders
-  → [Order] save + publish order.created
+```mermaid
+sequenceDiagram
+  participant F as Frontend
+  participant O as Order
+  participant R as RabbitMQ
+  participant C as Catalog Worker
+  participant P as Payment
+  participant N as Notification
+  participant S as Shipping
 
-order.created
-  → [Catalog Worker] deduct stock per item → publish inventory.deducted (per item)
-  → [Payment] create PENDING payment row
-  → [Notification] send confirmation email (via Mailhog)
-
-inventory.deducted
-  → [Order] acknowledge (status stays PENDING)
-
-[Frontend] Poll GET /payments/:orderId (retries 10x 1s until found)
-[Frontend] POST pay SUCCESS/FAILURE
-
-payment.completed
-  → [Order] status → PAID
-  → [Shipping] create shipment + tracking → publish order.shipped
-
-payment.failed
-  → [Order] status → CANCELLED
-  → [Catalog Worker] restock items
-
-order.shipped
-  → [Order] status → SHIPPED
-  → [Notification] send shipped email with tracking number
+  F->>O: POST /orders
+  O->>R: publish order.created
+  R-->>C: consume
+  R-->>P: consume
+  R-->>N: consume
+  C->>R: publish inventory.deducted / inventory.insufficient
+  R-->>O: consume inventory.deducted
+  F->>P: POST pay (SUCCESS/FAILURE)
+  alt payment.completed
+    P->>R: publish payment.completed
+    R-->>O: consume → status PAID
+    R-->>S: consume → create shipment
+    S->>R: publish order.shipped
+    R-->>O: consume → status SHIPPED
+    R-->>N: consume → send shipped email
+  else payment.failed
+    P->>R: publish payment.failed
+    R-->>O: consume → status CANCELLED
+    R-->>C: consume → restock items
+  end
 ```
 
 ---
