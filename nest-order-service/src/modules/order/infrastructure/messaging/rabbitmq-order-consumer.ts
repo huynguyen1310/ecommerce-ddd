@@ -32,6 +32,7 @@ export class RabbitMqOrderConsumer implements OnModuleInit {
       await this.channel.bindQueue(this.queue, this.exchange, 'inventory.insufficient');
       await this.channel.bindQueue(this.queue, this.exchange, 'payment.completed');
       await this.channel.bindQueue(this.queue, this.exchange, 'payment.failed');
+      await this.channel.bindQueue(this.queue, this.exchange, 'order.shipped');
 
       console.log('[RabbitMQ Consumer] Waiting for order lifecycle events...');
 
@@ -79,6 +80,11 @@ export class RabbitMqOrderConsumer implements OnModuleInit {
       case 'payment.failed':
         console.log(`[RabbitMQ Consumer] Payment failed. Reason: ${payload.data.reason}. Cancelling...`);
         order.status = 'CANCELLED';
+        break;
+
+      case 'order.shipped':
+        console.log(`[RabbitMQ Consumer] Order shipped! Tracking: ${payload.data.tracking_number}`);
+        order.status = 'SHIPPED';
         break;
     }
 

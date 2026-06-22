@@ -1,93 +1,65 @@
 # E-commerce DDD & Hexagonal Architecture Prototype
 
-A polyglot microservices ecosystem demonstrating **Domain-Driven Design (DDD)**, **Hexagonal Architecture (Ports & Adapters)**, and **Event-Driven** communication.
+Polyglot microservices ecosystem demonstrating **Domain-Driven Design (DDD)**, **Hexagonal Architecture (Ports & Adapters)**, and **Event-Driven** communication via choreography saga.
 
-## 🏗 System Architecture
+## Services
 
-The system is divided into bounded contexts, each utilizing different technologies suited for their specific responsibilities.
+| Service | Stack | DB | Port | Pattern |
+|---------|-------|----|------|---------|
+| **Order** | NestJS | PostgreSQL | 3001 | Strict Hexagonal |
+| **Catalog** | Laravel | MySQL | 8000 | Pragmatic DDD |
+| **Identity** | Node.js (Express) | PostgreSQL | 3002 | Hexagonal |
+| **Payment** | Node.js (Express) | PostgreSQL | 3003 | Hexagonal |
+| **Notification** | Node.js | — | — | Hexagonal |
+| **Review** | NestJS | PostgreSQL | 4000 | Strict Hexagonal |
+| **Shipping** | Node.js (Express) | PostgreSQL | 4001 | Hexagonal |
+| **Frontend** | Nuxt 3 | — | 3000 | SPA/SSR |
 
-### 1. Order Service (NestJS)
-- **Role**: Handles transactional order placement and status management.
-- **Pattern**: Strict Hexagonal Architecture.
-- **Layers**:
-  - `Domain`: Pure business logic (Entities, Value Objects). No dependencies.
-  - `Application`: Use Cases orchestrating domain logic.
-  - `Infrastructure`: TypeORM (PostgreSQL) adapters, RabbitMQ Publishers/Consumers.
-  - `Interface`: REST Controllers.
+## Saga Event Flow
 
-### 2. Catalog Service (Laravel)
-- **Role**: Manages product inventory and stock deduction.
-- **Pattern**: Modular DDD within Laravel.
-- **Layers**:
-  - `Core/Catalog/Domain`: Product aggregate and Repository interfaces.
-  - `Core/Catalog/Application`: Use cases for stock management.
-  - `Core/Catalog/Infrastructure`: Eloquent adapters and RabbitMQ listeners.
-- **Worker**: A dedicated background process (`php artisan rabbitmq:consume-orders`) handles async events.
+```
+order.created
+  → Catalog: deduct stock → inventory.deducted / inventory.insufficient
+  → Payment: create PENDING payment entry
+  → Notification: send order confirmation email
 
-### 3. Notification Service (Node.js)
-- **Role**: Purely reactive service for customer alerts.
-- **Pattern**: Hexagonal Architecture.
-- **Function**: Listens for `order.created` events, enriches data by fetching product names from the Catalog Service API, and sends emails via **Nodemailer** to **Mailhog**.
+payment.completed (user clicks Pay)
+  → Order: status → PAID
+  → Shipping: create shipment, publish order.shipped
 
-### 4. Frontend (Nuxt 3)
-- **Role**: Modern SSR/SPA interface.
-- **State Management**: Pinia stores for cart logic.
+order.shipped
+  → Order: status → SHIPPED
+  → Notification: send shipped email with tracking
 
----
-
-## 📡 Messaging & Event Flow (RabbitMQ)
-
-The system uses a **Saga (Choreography)** pattern to ensure eventual consistency:
-
-1. **`order.created`** (Topic: `order_events`):
-   - **Source**: Order Service (NestJS)
-   - **Consumer**: Catalog Service (Laravel)
-   - **Action**: Locate product and deduct stock.
-
-2. **`inventory.deducted`** (Topic: `order_events`):
-   - **Source**: Catalog Service (Laravel)
-   - **Consumer 1**: Order Service (NestJS) -> Update status to `SHIPPED`.
-   - **Consumer 2**: Notification Service (Node) -> Send "Order Shipped" email.
-
-3. **`inventory.insufficient`** (Topic: `order_events`):
-   - **Source**: Catalog Service (Laravel)
-   - **Consumer**: Order Service (NestJS) -> Update status to `CANCELLED`.
-
----
-
-## 🛠 Tech Stack
-- **Languages**: TypeScript (Node.js), PHP 8.2.
-- **Databases**: PostgreSQL (Orders), MySQL (Catalog).
-- **Broker**: RabbitMQ 3 (with Management UI).
-- **Email Testing**: Mailhog.
-- **Orchestration**: Docker Compose.
-
----
-
-## 🚀 Getting Started
-
-### Prerequisites
-- Docker & Docker Compose.
-
-### Installation
-```bash
-# 1. Clone/Navigate to the project
-cd ecommerce-ddd-project
-
-# 2. Start the entire stack
-docker-compose up --build
+payment.failed
+  → Order: status → CANCELLED
+  → Catalog: restock items
 ```
 
-### Access Points
-- **Frontend**: [http://localhost:3000](http://localhost:3000)
-- **RabbitMQ UI**: [http://localhost:15672](http://localhost:15672) (`guest`/`guest`)
-- **Mailhog UI**: [http://localhost:8025](http://localhost:8025)
-- **NestJS API**: [http://localhost:3001/orders](http://localhost:3001/orders)
-- **Laravel API**: [http://localhost:8000](http://localhost:8000)
+## Access Points
 
----
+- **Frontend**: http://localhost:3000
+- **RabbitMQ UI**: http://localhost:15672 (`guest`/`guest`)
+- **Mailhog UI**: http://localhost:8025
+- **Order API**: http://localhost:3001/orders
+- **Catalog API**: http://localhost:8000/api/products
+- **Identity API**: http://localhost:3002 (POST /register, POST /login)
+- **Payment API**: http://localhost:3003/payments/:orderId
+- **Review API**: http://localhost:4000/products/:id/reviews
+- **Shipping API**: http://localhost:4001/shipments/:orderId
 
-## 📝 Developer Notes
-- **Persistence**: NestJS uses a **Mapper** pattern in the infrastructure layer to ensure DB entities never leak into the Domain.
-- **Consistency**: Distributed transactions are handled via RabbitMQ. There is no direct DB sharing between services.
-- **Seeding**: Laravel automatically seeds two test products on first boot via `entrypoint.sh`.
+## Getting Started
+
+```bash
+docker compose up --build
+```
+
+Default admin: `admin@example.com` / `admin`
+
+## Key Architectural Decisions
+
+- **Hexagonal in NestJS** for Order + Review: DI-native framework, strict port/adapter separation, mappers keep domain pure.
+- **Pragmatic DDD in Laravel** for Catalog: bounded contexts under `app/Core/Catalog`, leverages Eloquent speed while preventing domain leaks.
+- **Hexagonal in Node.js** for Identity/Payment/Shipping: domain entities, use cases, repository pattern, manual composition root.
+- **Choreography saga** via RabbitMQ topics: no orchestrator, each service reacts to events. Temporal decoupling.
+- **No direct DB sharing**: services communicate only through events. Shared-nothing per service.

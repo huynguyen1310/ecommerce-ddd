@@ -54,10 +54,17 @@
           </div>
         </div>
 
-        <div class="bg-gray-50 px-6 py-4 border-t border-gray-100 flex flex-wrap gap-4">
+        <div class="bg-gray-50 px-6 py-4 border-t border-gray-100 flex flex-wrap gap-4 items-center">
           <div v-for="item in order.items" :key="item.productId" class="flex items-center gap-2 bg-white px-3 py-1.5 rounded-lg border border-gray-200 text-sm">
             <span class="text-gray-400 font-mono text-xs">{{ item.quantity }}x</span>
             <span class="font-medium text-gray-700">Product ID: {{ item.productId.substring(0, 8) }}</span>
+          </div>
+          <div v-if="order.status === 'SHIPPED' && tracking[order.id]" class="ml-auto flex items-center gap-3 bg-blue-50 border border-blue-200 px-4 py-2 rounded-lg">
+            <span class="text-sm">📦</span>
+            <div class="text-xs">
+              <p class="font-bold text-blue-800">{{ tracking[order.id].carrier }}</p>
+              <p class="text-blue-600 font-mono">{{ tracking[order.id].tracking_number }}</p>
+            </div>
           </div>
         </div>
       </div>
@@ -75,6 +82,7 @@ const config = useRuntimeConfig()
 
 const orders = ref([])
 const loading = ref(true)
+const tracking = ref({})
 let refreshInterval = null
 
 const fetchOrders = async () => {
@@ -83,11 +91,26 @@ const fetchOrders = async () => {
     const baseUrl = process.server ? config.apiOrderInternalUrl : config.public.apiOrderUrl
     const data = await $fetch(`${baseUrl}/orders/customer/${customerId}`)
     orders.value = data
+    fetchTracking(data)
   } catch (err) {
     console.error('Failed to fetch orders:', err)
   } finally {
     loading.value = false
   }
+}
+
+const fetchTracking = async (orderList) => {
+  const shipped = orderList.filter(o => o.status === 'SHIPPED')
+  if (shipped.length === 0) return
+  const shipBaseUrl = process.server ? config.apiShippingInternalUrl : config.public.apiShippingUrl
+  const results = {}
+  await Promise.all(shipped.map(async (o) => {
+    try {
+      const data = await $fetch(`${shipBaseUrl}/shipments/${o.id}`)
+      results[o.id] = data
+    } catch { /* not found yet */ }
+  }))
+  tracking.value = { ...tracking.value, ...results }
 }
 
 const getStatusIcon = (status) => {

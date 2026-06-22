@@ -45,4 +45,28 @@ class EmailTemplate {
   }
 }
 
+  static formatOrderShipped(orderData, trackingNumber, carrier) {
+    return `
+      <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden;">
+        <div style="background-color: #059669; color: white; padding: 24px; text-align: center;">
+          <h1 style="margin: 0;">Your Order Has Shipped! 🚚</h1>
+          <p style="margin: 8px 0 0; opacity: 0.9;">Order #${orderData.order_id}</p>
+        </div>
+        <div style="padding: 24px;">
+          <div style="background-color: #f0fdf4; border: 1px solid #bbf7d0; padding: 20px; border-radius: 12px; text-align: center;">
+            <p style="font-size: 14px; color: #166534; margin: 0;">Carrier</p>
+            <p style="font-size: 18px; font-weight: bold; color: #14532d; margin: 4px 0;">${carrier || 'FedEx'}</p>
+            <hr style="border: 0; border-top: 1px solid #bbf7d0; margin: 16px 0;" />
+            <p style="font-size: 14px; color: #166534; margin: 0;">Tracking Number</p>
+            <p style="font-size: 24px; font-weight: black; color: #14532d; margin: 4px 0; letter-spacing: 2px; font-family: monospace;">${trackingNumber}</p>
+          </div>
+          <p style="color: #6b7280; font-size: 13px; text-align: center; margin-top: 24px;">
+            You can track your package using the tracking number above.
+          </p>
+        </div>
+      </div>
+    `;
+  }
+}
+
 module.exports = EmailTemplate;

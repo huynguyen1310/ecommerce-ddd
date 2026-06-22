@@ -147,7 +147,18 @@ services:
     depends_on:
       - review-db
 
-  # Payment Service (Simulation)
+  # PostgreSQL for Payment Service
+  payment-db:
+    image: postgres:15-alpine
+    container_name: ecom-payment-db
+    environment:
+      POSTGRES_DB: payment_service
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5435:5432"
+
+  # Payment Service
   payment-service:
     build:
       context: ./payment-service
@@ -155,9 +166,45 @@ services:
     ports:
       - "3003:3003"
     environment:
+      DB_HOST: payment-db
+      DB_PORT: 5432
+      DB_USER: user
+      DB_PASS: password
+      DB_NAME: payment_service
       RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
       PORT: 3003
     depends_on:
+      - payment-db
+      - rabbitmq
+
+  # PostgreSQL for Shipping Service
+  shipping-db:
+    image: postgres:15-alpine
+    container_name: ecom-shipping-db
+    environment:
+      POSTGRES_DB: shipping_service
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5436:5432"
+
+  # Shipping Service
+  shipping-service:
+    build:
+      context: ./shipping-service
+    container_name: ecom-shipping-service
+    ports:
+      - "4001:4001"
+    environment:
+      DB_HOST: shipping-db
+      DB_PORT: 5432
+      DB_USER: user
+      DB_PASS: password
+      DB_NAME: shipping_service
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
+      PORT: 4001
+    depends_on:
+      - shipping-db
       - rabbitmq
 
   # Nuxt 3 Frontend
@@ -176,10 +223,13 @@ services:
       API_IDENTITY_INTERNAL_URL: http://identity-service:3002
       API_REVIEW_URL: http://localhost:4000
       API_REVIEW_INTERNAL_URL: http://review-service:4000
+      API_SHIPPING_URL: http://localhost:4001
+      API_SHIPPING_INTERNAL_URL: http://shipping-service:4001
     depends_on:
       - order-service
       - catalog-service
       - review-service
+      - shipping-service
 
   # Notification Service (Sends Emails)
   notification-service:
