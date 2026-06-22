@@ -11,7 +11,10 @@ class Product
         public readonly string $name,
         public readonly string $sku,
         public readonly float $price,
-        public int $stock
+        public int $stock,
+        public readonly ?string $imageUrl = null,
+        public readonly ?string $description = null,
+        public readonly ?string $category = null
     ) {}
 
     public function reduceStock(int $quantity): void
@@ -30,8 +33,8 @@ class Product
         $this->stock = $newStock;
     }
 
-    public static function fromPersistence(string $id, string $name, string $sku, float $price, int $stock): self
+    public static function fromPersistence(string $id, string $name, string $sku, float $price, int $stock, ?string $imageUrl = null, ?string $description = null, ?string $category = null): self
     {
-        return new self($id, $name, $sku, $price, $stock);
+        return new self($id, $name, $sku, $price, $stock, $imageUrl, $description, $category);
     }
 }

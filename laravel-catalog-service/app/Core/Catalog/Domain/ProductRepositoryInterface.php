@@ -8,5 +8,5 @@ interface ProductRepositoryInterface
     public function save(Product $product): void;
     public function findBySku(string $sku): ?Product;
     public function delete(string $id): void;
-    public function findAll(): array;
+    public function findAll(int $page = 1, int $perPage = 12): PaginatedResult;
 }

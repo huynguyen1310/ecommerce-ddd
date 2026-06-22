@@ -15,10 +15,21 @@ class ProductController extends Controller
         private \App\Core\Catalog\Application\CreateProductAction $createProductAction
     ) {}
 
-    public function index()
+    public function index(Request $request)
     {
-        $products = $this->productRepository->findAll();
-        return response()->json($products);
+        $page = (int) $request->query('page', 1);
+        $perPage = (int) $request->query('per_page', 12);
+        $result = $this->productRepository->findAll($page, $perPage);
+
+        return response()->json([
+            'data' => $result->items,
+            'meta' => [
+                'total' => $result->total,
+                'page' => $result->page,
+                'per_page' => $result->perPage,
+                'last_page' => $result->lastPage,
+            ],
+        ]);
     }
 
     public function show(string $id)

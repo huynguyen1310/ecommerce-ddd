@@ -13,8 +13,17 @@
     <NuxtLink to="/" class="text-sm text-indigo-600 hover:underline mb-6 inline-block">&larr; Back to catalog</NuxtLink>
 
     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-      <div class="h-64 bg-gray-50 flex items-center justify-center">
-        <span class="text-6xl text-gray-400">📦</span>
+      <div class="h-64 bg-gray-50 flex items-center justify-center relative overflow-hidden">
+        <img
+          v-if="product.imageUrl"
+          :src="product.imageUrl"
+          :alt="product.name"
+          class="w-full h-full object-cover"
+        />
+        <span v-else class="text-6xl text-gray-400">📦</span>
+        <span v-if="product.category" class="absolute top-3 left-3 bg-indigo-600/90 text-white text-xs font-black px-3 py-1.5 rounded-lg uppercase tracking-wider">
+          {{ product.category }}
+        </span>
       </div>
       <div class="p-8">
         <div class="flex justify-between items-start mb-2">
@@ -22,7 +31,8 @@
           <span class="text-3xl font-black text-indigo-600">${{ product.price }}</span>
         </div>
         <p class="text-gray-400 text-xs font-mono mb-4">SKU: {{ product.sku }}</p>
-        <p class="text-gray-600 mb-6">High-quality product for your digital collection.</p>
+        <p v-if="product.description" class="text-gray-600 mb-6">{{ product.description }}</p>
+        <p v-else class="text-gray-600 mb-6">High-quality product for your digital collection.</p>
 
         <div class="flex items-center gap-4 mb-6">
           <span v-if="product.stock > 0" class="text-sm font-bold text-emerald-600 bg-emerald-50 px-3 py-1 rounded-lg border border-emerald-100">In Stock ({{ product.stock }} available)</span>

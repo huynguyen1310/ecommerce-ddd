@@ -6,7 +6,7 @@
         <p class="text-gray-500 mt-2 text-lg">Browse our curated collection of expert knowledge.</p>
       </div>
       <div class="bg-indigo-50 px-4 py-2 rounded-lg border border-indigo-100 flex items-center gap-2">
-        <span class="text-indigo-600 font-bold">{{ products.length }}</span>
+        <span class="text-indigo-600 font-bold">{{ paginationMeta.total }}</span>
         <span class="text-indigo-400">Products</span>
       </div>
     </div>
@@ -21,15 +21,47 @@
       <p class="text-gray-500">We couldn't find any products in our catalog right now.</p>
     </div>
 
-    <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-      <ProductCard
-        v-for="product in products"
-        :key="product.id"
-        :product="product"
-        :avg-rating="productRatings[product.id]?.avg || 0"
-        :review-count="productRatings[product.id]?.count || 0"
-        @add-to-cart="cart.addToCart"
-      />
+    <div v-else>
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8">
+        <ProductCard
+          v-for="product in products"
+          :key="product.id"
+          :product="product"
+          :avg-rating="productRatings[product.id]?.avg || 0"
+          :review-count="productRatings[product.id]?.count || 0"
+          @add-to-cart="cart.addToCart"
+        />
+      </div>
+
+      <div v-if="paginationMeta.lastPage > 1" class="flex items-center justify-center gap-2">
+        <button
+          @click="goToPage(paginationMeta.page - 1)"
+          :disabled="paginationMeta.page <= 1"
+          class="px-4 py-2 rounded-lg border border-gray-200 text-sm font-bold transition-colors disabled:opacity-30 disabled:cursor-not-allowed hover:bg-gray-50"
+        >
+          ← Prev
+        </button>
+        <button
+          v-for="p in visiblePages"
+          :key="p"
+          @click="goToPage(p)"
+          :class="[
+            'w-10 h-10 rounded-lg text-sm font-bold transition-colors',
+            p === paginationMeta.page
+              ? 'bg-indigo-600 text-white'
+              : 'border border-gray-200 hover:bg-gray-50'
+          ]"
+        >
+          {{ p }}
+        </button>
+        <button
+          @click="goToPage(paginationMeta.page + 1)"
+          :disabled="paginationMeta.page >= paginationMeta.lastPage"
+          class="px-4 py-2 rounded-lg border border-gray-200 text-sm font-bold transition-colors disabled:opacity-30 disabled:cursor-not-allowed hover:bg-gray-50"
+        >
+          Next →
+        </button>
+      </div>
     </div>
   </div>
 </template>
@@ -44,20 +76,40 @@ const notifications = useNotificationStore()
 const products = ref([])
 const loading = ref(true)
 const productRatings = ref({})
+const paginationMeta = ref({ total: 0, page: 1, perPage: 12, lastPage: 1 })
 
-const fetchProducts = async () => {
+const visiblePages = computed(() => {
+  const { page, lastPage } = paginationMeta.value
+  const pages = []
+  const start = Math.max(1, page - 2)
+  const end = Math.min(lastPage, page + 2)
+  for (let i = start; i <= end; i++) {
+    pages.push(i)
+  }
+  return pages
+})
+
+const fetchProducts = async (page = 1) => {
+  loading.value = true
   try {
     const config = useRuntimeConfig()
     const baseUrl = process.server ? config.apiGatewayInternalUrl : config.public.apiGatewayUrl
-    const data = await $fetch(`${baseUrl}/api/products`)
-    products.value = data
-    fetchAllRatings(data)
+    const data = await $fetch(`${baseUrl}/api/products?page=${page}&per_page=12`)
+    products.value = data.data
+    paginationMeta.value = data.meta
+    fetchAllRatings(data.data)
   } catch (err) {
     console.error('Index fetch error:', err)
     notifications.error('Failed to load products')
   } finally {
     loading.value = false
   }
+}
+
+const goToPage = (page) => {
+  if (page < 1 || page > paginationMeta.value.lastPage) return
+  fetchProducts(page)
+  window.scrollTo({ top: 0, behavior: 'smooth' })
 }
 
 const fetchAllRatings = async (prods) => {
@@ -80,5 +132,5 @@ const fetchAllRatings = async (prods) => {
   productRatings.value = results
 }
 
-onMounted(fetchProducts)
+onMounted(() => fetchProducts(1))
 </script>

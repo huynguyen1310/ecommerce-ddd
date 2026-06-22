@@ -14,9 +14,12 @@ class ProductMapper
             $eloquent->name,
             $eloquent->sku,
             (float) $eloquent->price,
-            (int) $eloquent->stock
+            (int) $eloquent->stock,
+            $eloquent->image_url,
+            $eloquent->description,
+            $eloquent->category
         );
-  }
+    }
 
     public static function toPersistence(Product $domain): array
     {
@@ -26,6 +29,9 @@ class ProductMapper
             'sku' => $domain->sku,
             'price' => $domain->price,
             'stock' => $domain->stock,
+            'image_url' => $domain->imageUrl,
+            'description' => $domain->description,
+            'category' => $domain->category,
         ];
     }
 }

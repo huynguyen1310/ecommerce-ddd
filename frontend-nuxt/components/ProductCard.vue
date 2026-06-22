@@ -1,19 +1,30 @@
 <template>
   <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow flex flex-col h-full">
-    <NuxtLink :to="`/products/${product.id}`" class="h-48 bg-gray-50 flex items-center justify-center relative">
-      <span class="text-4xl text-gray-400">📦</span>
+    <NuxtLink :to="`/products/${product.id}`" class="h-48 bg-gray-50 flex items-center justify-center relative overflow-hidden">
+      <img
+        v-if="product.imageUrl"
+        :src="product.imageUrl"
+        :alt="product.name"
+        class="w-full h-full object-cover"
+        loading="lazy"
+      />
+      <span v-else class="text-4xl text-gray-400">📦</span>
       <div v-if="product.stock <= 5 && product.stock > 0" class="absolute top-2 right-2 bg-amber-100 text-amber-700 text-[10px] font-black px-2 py-1 rounded-md uppercase tracking-wider border border-amber-200">
         Low Stock: {{ product.stock }}
       </div>
       <div v-else-if="product.stock === 0" class="absolute inset-0 bg-white/60 backdrop-blur-[2px] flex items-center justify-center">
         <span class="bg-rose-600 text-white text-xs font-black px-3 py-1.5 rounded-lg shadow-lg rotate-[-5deg] uppercase">Out of Stock</span>
       </div>
+      <div v-if="product.category" class="absolute top-2 left-2 bg-indigo-600/90 text-white text-[10px] font-black px-2 py-1 rounded-md uppercase tracking-wider">
+        {{ product.category }}
+      </div>
     </NuxtLink>
     <div class="p-5 flex flex-col flex-grow">
       <NuxtLink :to="`/products/${product.id}`" class="flex justify-between items-start mb-1">
         <h3 class="text-lg font-bold text-gray-900 line-clamp-1 hover:text-indigo-600 transition-colors">{{ product.name }}</h3>
       </NuxtLink>
-      <p class="text-gray-400 text-[10px] font-mono mb-3 uppercase tracking-tighter">SKU: {{ product.sku }}</p>
+      <p v-if="product.description" class="text-gray-500 text-sm line-clamp-2 mb-3">{{ product.description }}</p>
+      <p v-else class="text-gray-400 text-[10px] font-mono mb-3 uppercase tracking-tighter">SKU: {{ product.sku }}</p>
 
       <div class="flex items-center gap-2 mb-3">
         <div class="flex items-center">
