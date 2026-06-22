@@ -31,39 +31,23 @@ async function connectRabbitMQ(retries = 5) {
         console.log('Tracked pending payment for order:', orderId);
         
         // Store order data to process it later manually, aggregating items across multiple events if necessary
-        let existing = pendingPayments.get(orderId);
-        if (!existing) {
-          existing = {
-            order_id: orderId,
-            items: [],
-            total: event.data.total || 0
-          };
-        }
+        const existing = pendingPayments.get(orderId) || {
+          order_id: orderId,
+          items: [],
+          total: event.data.total || 0
+        };
 
-        if (event.data.items && Array.isArray(event.data.items)) {
-          event.data.items.forEach(newItem => {
-            const found = existing.items.find(item => item.product_id === newItem.product_id);
-            if (found) {
-              found.quantity += newItem.quantity;
-            } else {
-              existing.items.push({
-                product_id: newItem.product_id,
-                quantity: newItem.quantity
-              });
-            }
-          });
-        } else if (event.data.product_id) {
-          const qty = event.data.quantity_deducted || 1;
-          const found = existing.items.find(item => item.product_id === event.data.product_id);
+        (event.data.items || []).forEach(newItem => {
+          const found = existing.items.find(item => item.product_id === newItem.product_id);
           if (found) {
-            found.quantity += qty;
+            found.quantity += newItem.quantity;
           } else {
             existing.items.push({
-              product_id: event.data.product_id,
-              quantity: qty
+              product_id: newItem.product_id,
+              quantity: newItem.quantity
             });
           }
-        }
+        });
         
         pendingPayments.set(orderId, existing);
         
