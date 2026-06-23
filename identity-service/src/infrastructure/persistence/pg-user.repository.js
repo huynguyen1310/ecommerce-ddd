@@ -5,6 +5,11 @@ class PgUserRepository {
     this.pool = pool;
   }
 
+  async findAll() {
+    const result = await this.pool.query('SELECT id, email, role FROM users ORDER BY email');
+    return result.rows;
+  }
+
   async findByEmail(email) {
     const result = await this.pool.query('SELECT * FROM users WHERE email = $1', [email]);
     const row = result.rows[0];

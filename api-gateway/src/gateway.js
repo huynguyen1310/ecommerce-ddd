@@ -57,6 +57,7 @@ const routeMap = [
   ['/reviews', 'http://review-service:4000'],
   ['/products/', 'http://review-service:4000'],
   ['/shipments', 'http://shipping-service:4001'],
+  ['/users', 'http://identity-service:3002'],
   ['/login', 'http://identity-service:3002'],
   ['/register', 'http://identity-service:3002'],
 ]

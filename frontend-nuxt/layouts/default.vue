@@ -7,7 +7,7 @@
         <div class="flex items-center space-x-6">
           <NuxtLink to="/" class="text-gray-600 hover:text-indigo-600 transition-colors font-medium">Home</NuxtLink>
           <NuxtLink v-if="auth.isLoggedIn" to="/orders" class="text-gray-600 hover:text-indigo-600 transition-colors font-medium">My Orders</NuxtLink>
-          <NuxtLink v-if="auth.isAdmin" to="/admin/inventory" class="text-gray-600 hover:text-indigo-600 transition-colors font-medium text-amber-600">Admin</NuxtLink>
+          <NuxtLink v-if="auth.isAdmin" to="/admin" class="text-gray-600 hover:text-indigo-600 transition-colors font-medium text-amber-600">Admin</NuxtLink>
           <NuxtLink to="/cart" class="text-gray-600 hover:text-indigo-600 transition-colors font-medium flex items-center">
             Cart
             <span v-if="cartCount > 0" class="ml-1 px-2 py-0.5 text-xs bg-indigo-600 text-white rounded-full">{{ cartCount }}</span>

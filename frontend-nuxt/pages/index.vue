@@ -43,15 +43,15 @@
     </div>
 
     <div v-else>
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8">
-        <ProductCard
-          v-for="product in products"
-          :key="product.id"
-          :product="product"
-          :avg-rating="productRatings[product.id]?.avg || 0"
-          :review-count="productRatings[product.id]?.count || 0"
-          @add-to-cart="cart.addToCart"
-        />
+      <div :key="gridKey" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8">
+        <div v-for="(product, i) in products" :key="product.id" class="card-in" :style="{ animationDelay: `${i * 60}ms` }">
+          <ProductCard
+            :product="product"
+            :avg-rating="productRatings[product.id]?.avg || 0"
+            :review-count="productRatings[product.id]?.count || 0"
+            @add-to-cart="cart.addToCart"
+          />
+        </div>
       </div>
 
       <div v-if="paginationMeta.lastPage > 1" class="flex items-center justify-center gap-2">
@@ -101,6 +101,8 @@ const paginationMeta = ref({ total: 0, page: 1, perPage: 12, lastPage: 1 })
 const searchQuery = ref('')
 const selectedCategory = ref('')
 const categories = ref([])
+const gridKey = ref(0)
+
 
 const visiblePages = computed(() => {
   const { page, lastPage } = paginationMeta.value
@@ -130,6 +132,7 @@ const fetchProducts = async (page = 1) => {
     products.value = data.data
     paginationMeta.value = data.meta
     fetchAllRatings(data.data)
+    gridKey.value++
   } catch (err) {
     console.error('Index fetch error:', err)
     notifications.error('Failed to load products')
@@ -185,3 +188,20 @@ onMounted(() => {
   fetchCategories()
 })
 </script>
+
+<style scoped>
+.card-in {
+  animation: fadeUp 0.55s ease both;
+}
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(36px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+</style>

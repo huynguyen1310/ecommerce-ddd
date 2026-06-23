@@ -54,6 +54,12 @@ class EloquentProductRepository
         }
     }
 
+    public function suggest(string $query): array
+    {
+        if (!$this->searchIndex) return [];
+        return $this->searchIndex->suggest($query);
+    }
+
     public function findAll(int $page = 1, int $perPage = 12, ?string $search = null, ?string $category = null): array
     {
         if ($search && $this->searchIndex) {

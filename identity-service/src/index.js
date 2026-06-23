@@ -26,6 +26,14 @@ app.use(express.json());
 
 app.post('/register', (req, res) => authController.register(req, res));
 app.post('/login', (req, res) => authController.login(req, res));
+app.get('/users', async (req, res) => {
+  try {
+    const users = await userRepository.findAll();
+    res.json(users);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch users' });
+  }
+});
 
 const initDb = async (retries = 5) => {
   try {

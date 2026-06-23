@@ -15,6 +15,15 @@ class ProductController extends Controller
         private \App\Core\Catalog\Application\CreateProductAction $createProductAction
     ) {}
 
+    public function autocomplete(Request $request): JsonResponse
+    {
+        $query = $request->query('q', '');
+        if (strlen($query) < 2) {
+            return response()->json([]);
+        }
+        return response()->json($this->productRepository->suggest($query));
+    }
+
     public function index(Request $request): JsonResponse
     {
         $result = $this->productRepository->findAll(

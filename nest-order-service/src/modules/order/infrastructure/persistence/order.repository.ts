@@ -23,6 +23,11 @@ export class TypeOrmOrderRepository implements IOrderRepository {
     return new Order(orm.id, orm.customerId, orm.items, orm.status as any, Number(orm.total), orm.createdAt);
   }
 
+  async findAll(): Promise<Order[]> {
+    const orms = await this.repository.find({ order: { createdAt: 'DESC' } });
+    return orms.map(orm => new Order(orm.id, orm.customerId, orm.items, orm.status as any, Number(orm.total), orm.createdAt));
+  }
+
   async findByCustomerId(customerId: string): Promise<Order[]> {
     const orms = await this.repository.find({
       where: { customerId },

@@ -54,7 +54,7 @@
               </div>
             </div>
             
-            <NuxtLink v-if="auth.isAdmin" to="/admin/inventory" class="block w-full py-4 bg-gray-900 text-white text-center font-bold rounded-xl hover:bg-black transition-colors shadow-lg">
+            <NuxtLink v-if="auth.isAdmin" to="/admin" class="block w-full py-4 bg-gray-900 text-white text-center font-bold rounded-xl hover:bg-black transition-colors shadow-lg">
               Go to Admin Dashboard
             </NuxtLink>
           </div>

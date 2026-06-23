@@ -24,6 +24,7 @@ class MeilisearchProductIndex
                 'category' => $product->category ?? '',
                 'sku' => $product->sku,
                 'price' => $product->price,
+                'imageUrl' => $product->imageUrl ?? '',
             ]
         ]);
     }
@@ -31,6 +32,16 @@ class MeilisearchProductIndex
     public function delete(string $id): void
     {
         $this->client->index(self::INDEX_NAME)->deleteDocument($id);
+    }
+
+    /** @return array{id: string, name: string, price: float, imageUrl: string}[] */
+    public function suggest(string $query, int $limit = 5): array
+    {
+        $result = $this->client->index(self::INDEX_NAME)->search($query, [
+            'limit' => $limit,
+            'attributesToRetrieve' => ['id', 'name', 'price', 'imageUrl'],
+        ]);
+        return $result->getHits();
     }
 
     /** @return string[] */
@@ -60,6 +71,7 @@ class MeilisearchProductIndex
             'category' => $p->category ?? '',
             'sku' => $p->sku,
             'price' => $p->price,
+            'imageUrl' => $p->imageUrl ?? '',
         ], $products);
 
         $index = $this->client->index(self::INDEX_NAME);

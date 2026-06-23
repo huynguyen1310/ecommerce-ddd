@@ -15,6 +15,17 @@ export class OrderController {
     return await this.createOrderUseCase.execute(body);
   }
 
+  @Get()
+  async findAll() {
+    const orders = await this.orderRepository.findAll();
+    return orders.map(order => ({
+      id: order.id, customerId: order.customerId, total: order.total,
+      status: order.status,
+      items: order.items.map(i => ({ productId: i.productId, quantity: i.quantity, price: i.price })),
+      createdAt: order.createdAt,
+    }));
+  }
+
   @Get(':id')
   async findById(@Param('id') id: string) {
     const order = await this.orderRepository.findById(id);
