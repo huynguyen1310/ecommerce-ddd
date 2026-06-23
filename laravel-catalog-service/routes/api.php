@@ -5,6 +5,7 @@ use App\Http\Controllers\ProductController;
 
 Route::get('/products', [ProductController::class, 'index']);
 Route::get('/products/autocomplete', [ProductController::class, 'autocomplete']);
+Route::get('/products/{id}/related', [ProductController::class, 'related']);
 Route::get('/products/categories', [ProductController::class, 'categories']);
 Route::get('/products/{id}', [ProductController::class, 'show']);
 Route::post('/products', [ProductController::class, 'store']);

@@ -53,6 +53,44 @@
       </div>
     </div>
 
+    <div v-if="relatedProducts.length > 0" class="mt-8 bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
+      <h2 class="text-xl font-black text-gray-900 mb-6">Related Products</h2>
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <NuxtLink
+          v-for="rp in relatedProducts"
+          :key="rp.id"
+          :to="`/products/${rp.id}`"
+          class="group p-4 rounded-xl border border-gray-100 hover:border-indigo-200 hover:shadow-md transition-all"
+        >
+          <div class="h-24 bg-gray-50 rounded-lg mb-2 flex items-center justify-center overflow-hidden">
+            <img v-if="rp.imageUrl" :src="rp.imageUrl" :alt="rp.name" class="w-full h-full object-cover" />
+            <span v-else class="text-3xl">📦</span>
+          </div>
+          <p class="text-sm font-bold text-gray-900 truncate group-hover:text-indigo-600">{{ rp.name }}</p>
+          <p class="text-sm font-bold text-indigo-600">${{ rp.price }}</p>
+        </NuxtLink>
+      </div>
+    </div>
+
+    <div v-if="recentlyViewed.items.length > 1" class="mt-8 bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
+      <h2 class="text-xl font-black text-gray-900 mb-6">Recently Viewed</h2>
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <NuxtLink
+          v-for="rv in recentlyViewed.items.filter(i => i.id !== product.id).slice(0, 4)"
+          :key="rv.id"
+          :to="`/products/${rv.id}`"
+          class="group p-4 rounded-xl border border-gray-100 hover:border-indigo-200 hover:shadow-md transition-all"
+        >
+          <div class="h-24 bg-gray-50 rounded-lg mb-2 flex items-center justify-center overflow-hidden">
+            <img v-if="rv.imageUrl" :src="rv.imageUrl" :alt="rv.name" class="w-full h-full object-cover" />
+            <span v-else class="text-3xl">📦</span>
+          </div>
+          <p class="text-sm font-bold text-gray-900 truncate group-hover:text-indigo-600">{{ rv.name }}</p>
+          <p class="text-sm font-bold text-indigo-600">${{ rv.price }}</p>
+        </NuxtLink>
+      </div>
+    </div>
+
     <div class="mt-8 bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
       <h2 class="text-xl font-black text-gray-900 mb-6">Reviews ({{ reviews.length }})</h2>
 
@@ -118,16 +156,19 @@
 import { useCartStore } from '~/stores/cart'
 import { useAuthStore } from '~/stores/auth'
 import { useNotificationStore } from '~/stores/notifications'
+import { useRecentlyViewedStore } from '~/stores/recentlyViewed'
 
 const cart = useCartStore()
 const auth = useAuthStore()
 const notifications = useNotificationStore()
+const recentlyViewed = useRecentlyViewedStore()
 const route = useRoute()
 const config = useRuntimeConfig()
 const apiBaseUrl = process.server ? config.apiGatewayInternalUrl : config.public.apiGatewayUrl
 
 const product = ref(null)
 const reviews = ref([])
+const relatedProducts = ref([])
 const loading = ref(true)
 const reviewsLoading = ref(true)
 const error = ref(false)
@@ -140,9 +181,11 @@ const authHeaders = () => {
 }
 
 onMounted(async () => {
+  recentlyViewed.hydrate()
   try {
     const data = await $fetch(`${apiBaseUrl}/api/products/${route.params.id}`)
     product.value = data
+    recentlyViewed.track(data)
   } catch {
     error.value = true
     loading.value = false
@@ -151,10 +194,14 @@ onMounted(async () => {
   loading.value = false
 
   try {
-    const data = await $fetch(`${apiBaseUrl}/products/${route.params.id}/reviews`)
-    reviews.value = data
+    const [reviewsData, relatedData] = await Promise.all([
+      $fetch(`${apiBaseUrl}/products/${route.params.id}/reviews`),
+      $fetch(`${apiBaseUrl}/api/products/${route.params.id}/related`),
+    ])
+    reviews.value = reviewsData
+    relatedProducts.value = relatedData
   } catch {
-    console.error('Failed to load reviews')
+    console.error('Failed to load reviews/related')
   } finally {
     reviewsLoading.value = false
   }

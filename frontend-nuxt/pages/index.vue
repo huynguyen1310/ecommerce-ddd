@@ -30,6 +30,16 @@
         <option value="">All Categories</option>
         <option v-for="cat in categories" :key="cat" :value="cat">{{ cat }}</option>
       </select>
+      <select
+        v-model="selectedSort"
+        class="px-4 py-2.5 rounded-xl border border-gray-200 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none transition-all text-sm bg-white min-w-[140px]"
+      >
+        <option value="name,asc">Name A-Z</option>
+        <option value="name,desc">Name Z-A</option>
+        <option value="price,asc">Price ↑</option>
+        <option value="price,desc">Price ↓</option>
+        <option value="created_at,desc">Newest</option>
+      </select>
     </div>
 
     <div v-if="loading" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -100,6 +110,7 @@ const productRatings = ref({})
 const paginationMeta = ref({ total: 0, page: 1, perPage: 12, lastPage: 1 })
 const searchQuery = ref('')
 const selectedCategory = ref('')
+const selectedSort = ref('name,asc')
 const categories = ref([])
 const gridKey = ref(0)
 
@@ -119,6 +130,9 @@ const buildUrl = (page = 1) => {
   const params = new URLSearchParams({ page, per_page: 12 })
   if (searchQuery.value) params.set('search', searchQuery.value)
   if (selectedCategory.value) params.set('category', selectedCategory.value)
+  const [sort, order] = selectedSort.value.split(',')
+  params.set('sort', sort)
+  params.set('order', order)
   return params
 }
 
@@ -178,7 +192,7 @@ const fetchCategories = async () => {
 }
 
 let debounceTimer
-watch([searchQuery, selectedCategory], () => {
+watch([searchQuery, selectedCategory, selectedSort], () => {
   clearTimeout(debounceTimer)
   debounceTimer = setTimeout(() => fetchProducts(1), 300)
 })

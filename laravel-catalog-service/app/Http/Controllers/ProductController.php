@@ -30,7 +30,9 @@ class ProductController extends Controller
             (int) $request->query('page', 1),
             (int) $request->query('per_page', 12),
             $request->query('search'),
-            $request->query('category')
+            $request->query('category'),
+            $request->query('sort', 'name'),
+            $request->query('order', 'asc')
         );
 
         return response()->json([
@@ -42,6 +44,13 @@ class ProductController extends Controller
                 'last_page' => $result['lastPage'],
             ],
         ]);
+    }
+
+    public function related(Request $request, string $id): JsonResponse
+    {
+        $product = $this->productRepository->findById($id);
+        if (!$product || !$product->category) return response()->json([]);
+        return response()->json($this->productRepository->findByCategory($product->category, $id, (int) $request->query('limit', 8)));
     }
 
     public function categories(): JsonResponse

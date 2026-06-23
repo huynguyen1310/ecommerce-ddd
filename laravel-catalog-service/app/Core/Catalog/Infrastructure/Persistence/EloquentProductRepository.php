@@ -60,7 +60,7 @@ class EloquentProductRepository
         return $this->searchIndex->suggest($query);
     }
 
-    public function findAll(int $page = 1, int $perPage = 12, ?string $search = null, ?string $category = null): array
+    public function findAll(int $page = 1, int $perPage = 12, ?string $search = null, ?string $category = null, string $sort = 'name', string $order = 'asc'): array
     {
         if ($search && $this->searchIndex) {
             $ids = $this->searchIndex->searchIds($search, $category, $page, $perPage);
@@ -72,7 +72,7 @@ class EloquentProductRepository
                 $paginator = new \Illuminate\Pagination\LengthAwarePaginator([], 0, $perPage, $page);
             }
         } else {
-            $query = ProductEloquentModel::orderBy('name');
+            $query = ProductEloquentModel::orderBy($sort, $order);
             if ($category) $query->where('category', $category);
             $paginator = $query->paginate($perPage, ['*'], 'page', $page);
         }
@@ -84,6 +84,13 @@ class EloquentProductRepository
             'perPage' => $paginator->perPage(),
             'lastPage' => $paginator->lastPage(),
         ];
+    }
+
+    public function findByCategory(string $category, string $excludeId = '', int $limit = 8): array
+    {
+        $query = ProductEloquentModel::where('category', $category);
+        if ($excludeId) $query->where('id', '!=', $excludeId);
+        return $query->limit($limit)->get()->map(fn($e) => new Product($e->id, $e->name, $e->sku, (float) $e->price, (int) $e->stock, $e->image_url, $e->description, $e->category))->toArray();
     }
 
     public function findAllCategories(): array
