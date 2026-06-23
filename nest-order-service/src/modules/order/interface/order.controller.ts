@@ -12,7 +12,7 @@ export class OrderController {
   ) {}
 
   @Post()
-  async create(@Body() body: { customerId: string; customerEmail?: string; items: Array<{ productId: string; quantity: number; price: number }>; shippingAddress?: ShippingAddress }) {
+  async create(@Body() body: { customerId: string; customerEmail?: string; items: Array<{ productId: string; quantity: number; price: number }>; shippingAddress?: ShippingAddress; couponCode?: string }) {
     return await this.createOrderUseCase.execute(body);
   }
 
@@ -21,6 +21,8 @@ export class OrderController {
       id: order.id, customerId: order.customerId, total: order.total,
       status: order.status,
       shippingAddress: order.shippingAddress,
+      couponCode: order.couponCode,
+      discount: order.discount ? Number(order.discount) : undefined,
       items: order.items.map(i => ({ productId: i.productId, quantity: i.quantity, price: i.price })),
       createdAt: order.createdAt,
     };

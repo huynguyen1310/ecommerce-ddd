@@ -37,6 +37,7 @@ const publicPaths = [
   ['POST', '/cart'],
   ['PATCH', '/cart'],
   ['DELETE', '/cart'],
+  ['POST', '/coupons/validate'],
 ]
 
 const isPublic = (req) =>
@@ -52,6 +53,7 @@ const routeMap = [
   ['/api/products', 'http://catalog-service:9000'],
   ['/api/products/', 'http://catalog-service:9000'],
   ['/cart', 'http://cart-service:3004'],
+  ['/coupons', 'http://order-service:3000'],
   ['/orders', 'http://order-service:3000'],
   ['/payments', 'http://payment-service:3003'],
   ['/reviews', 'http://review-service:4000'],

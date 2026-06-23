@@ -61,11 +61,22 @@
               <p class="text-sm font-bold text-gray-900">${{ (item.price * item.quantity).toFixed(2) }}</p>
             </div>
           </div>
+
           <div class="border-t border-gray-100 pt-4 space-y-2">
             <div class="flex justify-between text-sm text-gray-600"><span>Subtotal</span><span>${{ subtotal.toFixed(2) }}</span></div>
             <div class="flex justify-between text-sm text-gray-600"><span>Shipping</span><span class="text-green-600 font-medium">Free</span></div>
-            <div class="flex justify-between text-lg font-bold text-gray-900 pt-2 border-t border-gray-100 mt-2"><span>Total</span><span class="text-indigo-600">${{ subtotal.toFixed(2) }}</span></div>
+            <div v-if="couponDiscount" class="flex justify-between text-sm text-green-600"><span>Discount ({{ appliedCoupon }})</span><span>-${{ couponDiscount.toFixed(2) }}</span></div>
+            <div class="flex justify-between text-lg font-bold text-gray-900 pt-2 border-t border-gray-100 mt-2"><span>Total</span><span class="text-indigo-600">${{ finalTotal.toFixed(2) }}</span></div>
           </div>
+
+          <div class="mt-6 pt-6 border-t border-gray-100">
+            <div class="flex gap-2">
+              <input v-model="couponInput" @keyup.enter="applyCoupon" type="text" placeholder="Coupon code" class="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none text-sm uppercase" maxlength="20" />
+              <button @click="applyCoupon" :disabled="couponLoading || !couponInput" class="px-4 py-2.5 bg-gray-900 hover:bg-gray-800 text-white font-bold rounded-xl transition-all disabled:opacity-50 text-sm">{{ couponLoading ? '...' : 'Apply' }}</button>
+            </div>
+            <p v-if="couponError" class="text-red-500 text-xs mt-1">{{ couponError }}</p>
+          </div>
+
           <button @click="submitOrder" :disabled="submitting" class="w-full mt-6 py-4 bg-indigo-600 hover:bg-indigo-700 text-white font-black rounded-xl transition-all shadow-lg hover:shadow-indigo-200 disabled:opacity-50 text-lg">
             {{ submitting ? 'Placing Order...' : 'Place Order' }}
           </button>
@@ -84,10 +95,39 @@ const cart = useCartStore()
 const auth = useAuthStore()
 const notifications = useNotificationStore()
 const router = useRouter()
+const config = useRuntimeConfig()
 
 const address = ref({ name: '', street: '', city: '', state: '', zip: '', country: 'US' })
 const submitting = ref(false)
 const subtotal = computed(() => cart.items.reduce((s, i) => s + i.price * i.quantity, 0))
+const couponInput = ref('')
+const couponLoading = ref(false)
+const couponError = ref('')
+const appliedCoupon = ref('')
+const couponDiscount = ref(0)
+
+const finalTotal = computed(() => Math.max(0, subtotal.value - couponDiscount.value))
+
+async function applyCoupon() {
+  couponError.value = ''
+  couponLoading.value = true
+  try {
+    const res = await $fetch(`${config.public.apiGatewayUrl}/coupons/validate`, {
+      method: 'POST',
+      body: { code: couponInput.value.toUpperCase(), orderTotal: subtotal.value },
+    })
+    appliedCoupon.value = res.code
+    couponDiscount.value = res.discount
+    couponInput.value = ''
+    notifications.success(`Coupon applied! You save $${res.discount.toFixed(2)}`)
+  } catch (err) {
+    couponDiscount.value = 0
+    appliedCoupon.value = ''
+    couponError.value = err.data?.message || 'Invalid coupon code'
+  } finally {
+    couponLoading.value = false
+  }
+}
 
 const submitOrder = async () => {
   if (!auth.isLoggedIn) {
@@ -96,7 +136,7 @@ const submitOrder = async () => {
   }
   submitting.value = true
   try {
-    const order = await cart.checkout(address.value)
+    const order = await cart.checkout(address.value, appliedCoupon.value || undefined)
     notifications.success('Order placed! Redirecting to payment...')
     router.push(`/checkout/${order.id}`)
   } catch (err) {

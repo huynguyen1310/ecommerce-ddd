@@ -21,6 +21,12 @@ export class OrderOrmEntity {
   @Column('jsonb', { nullable: true })
   shippingAddress?: ShippingAddress;
 
+  @Column({ nullable: true })
+  couponCode?: string;
+
+  @Column('decimal', { precision: 10, scale: 2, nullable: true })
+  discount?: number;
+
   @CreateDateColumn()
   createdAt: Date;
 }

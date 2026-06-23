@@ -98,7 +98,7 @@ export const useCartStore = defineStore('cart', {
         useNotificationStore().error('Failed to remove item')
       }
     },
-    async checkout(address) {
+    async checkout(address, couponCode?) {
       const auth = useAuthStore()
       const payload = {
         customerId: auth.user?.id || guestId(),
@@ -109,6 +109,7 @@ export const useCartStore = defineStore('cart', {
           price: i.price,
         })),
         ...(address && { shippingAddress: address }),
+        ...(couponCode && { couponCode }),
       }
 
       try {

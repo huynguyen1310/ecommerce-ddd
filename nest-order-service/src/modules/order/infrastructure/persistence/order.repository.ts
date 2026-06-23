@@ -18,7 +18,7 @@ export class TypeOrmOrderRepository implements IOrderRepository {
   }
 
   private mapOrder(orm: OrderOrmEntity): Order {
-    return new Order(orm.id, orm.customerId, orm.items, orm.status as any, Number(orm.total), orm.createdAt, orm.shippingAddress);
+    return new Order(orm.id, orm.customerId, orm.items, orm.status as any, Number(orm.total), orm.createdAt, orm.shippingAddress, orm.couponCode, orm.discount ? Number(orm.discount) : undefined);
   }
 
   async findById(id: string): Promise<Order | null> {

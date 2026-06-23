@@ -16,10 +16,13 @@ export class Order {
     public readonly total: number,
     public readonly createdAt: Date,
     public readonly shippingAddress?: ShippingAddress,
+    public readonly couponCode?: string,
+    public readonly discount?: number,
   ) {}
 
-  static create(id: string, customerId: string, items: Array<{ productId: string; quantity: number; price: number }>, shippingAddress?: ShippingAddress): Order {
-    const total = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  static create(id: string, customerId: string, items: Array<{ productId: string; quantity: number; price: number }>, shippingAddress?: ShippingAddress, couponCode?: string, discount?: number): Order {
+    const subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+    const total = discount ? Math.round((subtotal - discount) * 100) / 100 : subtotal;
     return new Order(
       id,
       customerId,
@@ -28,6 +31,8 @@ export class Order {
       total,
       new Date(),
       shippingAddress,
+      couponCode,
+      discount,
     );
   }
 }
