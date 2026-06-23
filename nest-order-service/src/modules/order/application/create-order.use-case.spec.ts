@@ -1,11 +1,10 @@
 import { CreateOrderUseCase } from './create-order.use-case';
 import { IOrderRepository } from '../domain/order.repository.interface';
-import { IMessagePublisher } from '../domain/ports/message-publisher.interface';
 
 describe('CreateOrderUseCase', () => {
   let useCase: CreateOrderUseCase;
   let mockRepo: jest.Mocked<IOrderRepository>;
-  let mockPublisher: jest.Mocked<IMessagePublisher>;
+  let mockPublisher: any;
 
   beforeEach(() => {
     mockRepo = { save: jest.fn(), findById: jest.fn(), findByCustomerId: jest.fn() };

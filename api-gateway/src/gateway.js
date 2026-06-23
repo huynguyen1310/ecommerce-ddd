@@ -33,6 +33,10 @@ const publicPaths = [
   ['GET', '/api/products'],
   ['GET', '/api/products/'],
   ['GET', '/products/'],
+  ['GET', '/cart'],
+  ['POST', '/cart'],
+  ['PATCH', '/cart'],
+  ['DELETE', '/cart'],
 ]
 
 const isPublic = (req) =>
@@ -47,6 +51,7 @@ app.use((req, res, next) => {
 const routeMap = [
   ['/api/products', 'http://catalog-service:9000'],
   ['/api/products/', 'http://catalog-service:9000'],
+  ['/cart', 'http://cart-service:3004'],
   ['/orders', 'http://order-service:3000'],
   ['/payments', 'http://payment-service:3003'],
   ['/reviews', 'http://review-service:4000'],

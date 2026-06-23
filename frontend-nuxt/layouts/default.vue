@@ -51,4 +51,8 @@ const handleLogout = () => {
   auth.logout()
   router.push('/login')
 }
+
+onMounted(() => cartStore.fetchCart())
+
+watch(() => auth.isLoggedIn, () => cartStore.fetchCart())
 </script>

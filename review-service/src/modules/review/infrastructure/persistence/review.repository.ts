@@ -1,26 +1,25 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { IReviewRepository } from '../../domain/review.repository.interface';
 import { Review } from '../../domain/review.entity';
 import { ReviewOrmEntity } from './review.orm-entity';
-import { ReviewMapper } from './review.mapper';
 
 @Injectable()
-export class TypeOrmReviewRepository implements IReviewRepository {
+export class TypeOrmReviewRepository {
   constructor(
     @InjectRepository(ReviewOrmEntity)
     private readonly repository: Repository<ReviewOrmEntity>,
   ) {}
 
   async save(review: Review): Promise<void> {
-    const orm = ReviewMapper.toPersistence(review);
+    const orm = this.repository.create({ ...review });
     await this.repository.save(orm);
   }
 
   async findById(id: string): Promise<Review | null> {
     const orm = await this.repository.findOne({ where: { id } });
-    return orm ? ReviewMapper.toDomain(orm) : null;
+    if (!orm) return null;
+    return new Review(orm.id, orm.productId, orm.customerId, orm.rating, orm.text, orm.createdAt);
   }
 
   async findByProductId(productId: string): Promise<Review[]> {
@@ -28,7 +27,7 @@ export class TypeOrmReviewRepository implements IReviewRepository {
       where: { productId },
       order: { createdAt: 'DESC' },
     });
-    return orms.map(orm => ReviewMapper.toDomain(orm));
+    return orms.map(orm => new Review(orm.id, orm.productId, orm.customerId, orm.rating, orm.text, orm.createdAt));
   }
 
   async delete(id: string): Promise<void> {

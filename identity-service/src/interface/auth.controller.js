@@ -1,6 +1,3 @@
-const { RegisterDto } = require('../application/dtos/register.dto');
-const { LoginDto } = require('../application/dtos/login.dto');
-
 class AuthController {
   constructor(registerUseCase, loginUseCase) {
     this.registerUseCase = registerUseCase;
@@ -8,7 +5,7 @@ class AuthController {
   }
 
   async register(req, res) {
-    const dto = new RegisterDto(req.body.email, req.body.password);
+    const dto = { email: req.body.email, password: req.body.password };
     try {
       const result = await this.registerUseCase.execute(dto);
       res.status(201).json(result);
@@ -22,7 +19,7 @@ class AuthController {
   }
 
   async login(req, res) {
-    const dto = new LoginDto(req.body.email, req.body.password);
+    const dto = { email: req.body.email, password: req.body.password };
     try {
       const result = await this.loginUseCase.execute(dto);
       res.json(result);

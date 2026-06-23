@@ -2,14 +2,12 @@
 
 namespace App\Core\Catalog\Application;
 
-use App\Core\Catalog\Application\Ports\EventDispatcher;
-use App\Core\Catalog\Domain\ProductRepositoryInterface;
+use App\Core\Catalog\Infrastructure\Persistence\EloquentProductRepository;
 
 class DeductStockUseCase
 {
     public function __construct(
-        private ProductRepositoryInterface $productRepository,
-        private EventDispatcher $eventDispatcher
+        private EloquentProductRepository $productRepository
     ) {}
 
     public function execute(string $productId, int $quantity): void
@@ -22,9 +20,5 @@ class DeductStockUseCase
 
         $product->reduceStock($quantity);
         $this->productRepository->save($product);
-
-        foreach ($product->releaseEvents() as $event) {
-            $this->eventDispatcher->dispatch($event);
-        }
     }
 }

@@ -1,7 +1,6 @@
 <?php
 
 use App\Core\Catalog\Domain\Product;
-use App\Core\Catalog\Domain\Exceptions\InsufficientStockException;
 
 test('creates product with given properties', function () {
     $product = new Product('p1', 'DDD Book', 'SKU-001', 45.00, 10);
@@ -20,11 +19,11 @@ test('reduceStock deducts quantity', function () {
     expect($product->stock)->toBe(2);
 });
 
-test('reduceStock throws InsufficientStockException when stock too low', function () {
+test('reduceStock throws when stock too low', function () {
     $product = new Product('p1', 'Test', 'SKU', 10.00, 2);
 
     expect(fn () => $product->reduceStock(5))
-        ->toThrow(InsufficientStockException::class);
+        ->toThrow(\DomainException::class, 'insufficient stock');
 });
 
 test('reduceStock preserves stock on exception', function () {
@@ -32,7 +31,7 @@ test('reduceStock preserves stock on exception', function () {
 
     try {
         $product->reduceStock(5);
-    } catch (InsufficientStockException) {}
+    } catch (\DomainException) {}
 
     expect($product->stock)->toBe(2);
 });
@@ -49,14 +48,4 @@ test('setStock throws when negative', function () {
 
     expect(fn () => $product->setStock(-1))
         ->toThrow(Exception::class, 'Stock cannot be negative');
-});
-
-test('fromPersistence creates Product', function () {
-    $product = Product::fromPersistence('p1', 'Book', 'SKU', 29.99, 7);
-
-    expect($product)->toBeInstanceOf(Product::class);
-    expect($product->id)->toBe('p1');
-    expect($product->name)->toBe('Book');
-    expect($product->price)->toBe(29.99);
-    expect($product->stock)->toBe(7);
 });

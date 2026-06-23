@@ -3,14 +3,14 @@
 namespace App\Core\Catalog\Infrastructure\Messaging;
 
 use App\Core\Catalog\Application\DeductStockUseCase;
-use App\Core\Catalog\Domain\ProductRepositoryInterface;
+use App\Core\Catalog\Infrastructure\Persistence\EloquentProductRepository;
 
 class RabbitMQOrderConsumer
 {
     public function __construct(
         private DeductStockUseCase $deductStockUseCase,
         private \App\Core\Catalog\Application\RestockProductUseCase $restockUseCase,
-        private ProductRepositoryInterface $productRepository,
+        private EloquentProductRepository $productRepository,
         private RabbitMQInventoryPublisher $publisher
     ) {}
 

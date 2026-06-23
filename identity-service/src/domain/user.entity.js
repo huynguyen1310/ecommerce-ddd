@@ -6,9 +6,6 @@ class User {
     this.role = role || 'customer';
   }
 
-  isAdmin() {
-    return this.role === 'admin';
-  }
 }
 
 module.exports = { User };

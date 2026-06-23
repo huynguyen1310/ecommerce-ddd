@@ -1,27 +1,34 @@
-import { Controller, Post, Body, Get, Param, Delete, HttpCode, UseGuards } from '@nestjs/common';
+import { Controller, Post, Body, Get, Param, Delete, HttpCode, UseGuards, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import { CreateReviewUseCase } from '../application/create-review.use-case';
-import { GetProductReviewsUseCase } from '../application/get-product-reviews.use-case';
-import { DeleteReviewUseCase } from '../application/delete-review.use-case';
-import { CreateReviewDto } from '../application/dtos/create-review.dto';
+import { ReviewOrmEntity } from '../infrastructure/persistence/review.orm-entity';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 
 @Controller()
 export class ReviewController {
   constructor(
     private readonly createReviewUseCase: CreateReviewUseCase,
-    private readonly getProductReviewsUseCase: GetProductReviewsUseCase,
-    private readonly deleteReviewUseCase: DeleteReviewUseCase,
+    @InjectRepository(ReviewOrmEntity)
+    private readonly reviewRepo: Repository<ReviewOrmEntity>,
   ) {}
 
   @Post('reviews')
-  async create(@Body() body: CreateReviewDto) {
+  async create(@Body() body: { productId: string; customerId: string; rating: number; text: string }) {
     return await this.createReviewUseCase.execute(body);
   }
 
   @Get('products/:productId/reviews')
   async findByProduct(@Param('productId') productId: string) {
-    return await this.getProductReviewsUseCase.execute(productId);
+    const reviews = await this.reviewRepo.find({
+      where: { productId },
+      order: { createdAt: 'DESC' },
+    });
+    return reviews.map(r => ({
+      id: r.id, productId: r.productId, customerId: r.customerId,
+      rating: r.rating, text: r.text, createdAt: r.createdAt,
+    }));
   }
 
   @Delete('reviews/:id')
@@ -31,6 +38,11 @@ export class ReviewController {
     @Param('id') id: string,
     @CurrentUser() user: { id: string; role: string },
   ) {
-    await this.deleteReviewUseCase.execute(id, user.id, user.role);
+    const review = await this.reviewRepo.findOne({ where: { id } });
+    if (!review) throw new NotFoundException('Review not found');
+    if (user.role !== 'admin' && review.customerId !== user.id) {
+      throw new ForbiddenException('You can only delete your own reviews');
+    }
+    await this.reviewRepo.delete(id);
   }
 }

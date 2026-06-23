@@ -1,6 +1,5 @@
-const { UserMapper } = require('./user.mapper');
+const { User } = require('../../domain/user.entity');
 
-/** @implements {import('../../domain/ports/IUserRepository').IUserRepository} */
 class PgUserRepository {
   constructor(pool) {
     this.pool = pool;
@@ -8,7 +7,9 @@ class PgUserRepository {
 
   async findByEmail(email) {
     const result = await this.pool.query('SELECT * FROM users WHERE email = $1', [email]);
-    return UserMapper.toDomain(result.rows[0]);
+    const row = result.rows[0];
+    if (!row) return null;
+    return new User(row.id, row.email, row.password, row.role);
   }
 
   async save(user) {

@@ -1,5 +1,3 @@
-const { ProcessPaymentDto } = require('../application/dtos/process-payment.dto');
-
 class PaymentController {
   constructor(processPaymentUseCase, paymentRepository) {
     this.processPaymentUseCase = processPaymentUseCase;
@@ -7,7 +5,7 @@ class PaymentController {
   }
 
   async process(req, res) {
-    const dto = new ProcessPaymentDto(req.params.orderId, req.body.status);
+    const dto = { orderId: req.params.orderId, status: req.body.status };
     try {
       const result = await this.processPaymentUseCase.execute(dto);
       res.json(result);

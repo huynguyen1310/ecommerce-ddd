@@ -1,18 +1,12 @@
 import { CreateReviewUseCase } from './create-review.use-case';
-import { IReviewRepository } from '../domain/review.repository.interface';
 
 describe('CreateReviewUseCase', () => {
   let useCase: CreateReviewUseCase;
-  let mockRepo: jest.Mocked<IReviewRepository>;
+  let mockRepo: { save: jest.Mock<any>; findById: jest.Mock; findByProductId: jest.Mock; delete: jest.Mock; repository: any };
 
   beforeEach(() => {
-    mockRepo = {
-      save: jest.fn(),
-      findById: jest.fn(),
-      findByProductId: jest.fn(),
-      delete: jest.fn(),
-    };
-    useCase = new CreateReviewUseCase(mockRepo);
+    mockRepo = { save: jest.fn(), findById: jest.fn(), findByProductId: jest.fn(), delete: jest.fn(), repository: null };
+    useCase = new CreateReviewUseCase(mockRepo as any);
   });
 
   it('creates and saves review', async () => {

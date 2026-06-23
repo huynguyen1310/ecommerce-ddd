@@ -1,18 +1,15 @@
-import { Inject, Injectable } from '@nestjs/common';
-import { IReviewRepository } from '../domain/review.repository.interface';
+import { Injectable } from '@nestjs/common';
 import { Review } from '../domain/review.entity';
-import { CreateReviewDto } from './dtos/create-review.dto';
-import { ReviewDto } from './dtos/review.dto';
+import { TypeOrmReviewRepository } from '../infrastructure/persistence/review.repository';
 import * as crypto from 'crypto';
 
 @Injectable()
 export class CreateReviewUseCase {
   constructor(
-    @Inject('IReviewRepository')
-    private readonly reviewRepository: IReviewRepository,
+    private readonly reviewRepository: TypeOrmReviewRepository,
   ) {}
 
-  async execute(input: CreateReviewDto): Promise<ReviewDto> {
+  async execute(input: { productId: string; customerId: string; rating: number; text: string }) {
     const id = crypto.randomUUID();
     const review = Review.create(id, input.productId, input.customerId, input.rating, input.text);
     await this.reviewRepository.save(review);

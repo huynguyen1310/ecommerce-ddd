@@ -1,11 +1,10 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { Order } from '../../domain/order.entity';
-import { IMessagePublisher } from '../../domain/ports/message-publisher.interface';
-import { Connection, Channel, connect } from 'amqplib';
+import { connect } from 'amqplib';
 import * as crypto from 'crypto';
 
 @Injectable()
-export class RabbitMqOrderPublisher implements OnModuleInit, IMessagePublisher {
+export class RabbitMqOrderPublisher implements OnModuleInit {
   private connection: any;
   private channel: any;
   private readonly exchange = 'events';

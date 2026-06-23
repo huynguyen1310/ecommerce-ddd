@@ -4,7 +4,6 @@ import { Repository } from 'typeorm';
 import { IOrderRepository } from '../../domain/order.repository.interface';
 import { Order } from '../../domain/order.entity';
 import { OrderOrmEntity } from './order.orm-entity';
-import { OrderMapper } from './order.mapper';
 
 @Injectable()
 export class TypeOrmOrderRepository implements IOrderRepository {
@@ -14,13 +13,14 @@ export class TypeOrmOrderRepository implements IOrderRepository {
   ) {}
 
   async save(order: Order): Promise<void> {
-    const orm = OrderMapper.toPersistence(order);
+    const orm = this.repository.create({ ...order });
     await this.repository.save(orm);
   }
 
   async findById(id: string): Promise<Order | null> {
     const orm = await this.repository.findOne({ where: { id } });
-    return orm ? OrderMapper.toDomain(orm) : null;
+    if (!orm) return null;
+    return new Order(orm.id, orm.customerId, orm.items, orm.status as any, Number(orm.total), orm.createdAt);
   }
 
   async findByCustomerId(customerId: string): Promise<Order[]> {
@@ -28,6 +28,6 @@ export class TypeOrmOrderRepository implements IOrderRepository {
       where: { customerId },
       order: { createdAt: 'DESC' },
     });
-    return orms.map(orm => OrderMapper.toDomain(orm));
+    return orms.map(orm => new Order(orm.id, orm.customerId, orm.items, orm.status as any, Number(orm.total), orm.createdAt));
   }
 }

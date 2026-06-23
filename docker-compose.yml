@@ -252,6 +252,7 @@ services:
       - payment-service
       - review-service
       - shipping-service
+      - cart-service
 
   # Notification Service (Sends Emails)
   notification-service:
@@ -267,6 +268,26 @@ services:
       - rabbitmq
       - mailhog
       - catalog-service
+
+  # Redis for Cart Service
+  redis:
+    image: redis:7-alpine
+    container_name: ecom-redis
+    ports:
+      - "6379:6379"
+
+  # Cart Service (Persistent Redis Cart)
+  cart-service:
+    build:
+      context: ./cart-service
+    container_name: ecom-cart-service
+    ports:
+      - "3004:3004"
+    environment:
+      REDIS_URL: redis://redis:6379
+      PORT: 3004
+    depends_on:
+      - redis
 
   # Mailhog (SMTP Server + UI)
   mailhog:

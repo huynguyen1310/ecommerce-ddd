@@ -1,8 +1,6 @@
 import { IOrderRepository } from '../domain/order.repository.interface';
 import { Order } from '../domain/order.entity';
-import { IMessagePublisher } from '../domain/ports/message-publisher.interface';
-import { CreateOrderDto } from './dtos/create-order.dto';
-import { OrderDto } from './dtos/order.dto';
+import { RabbitMqOrderPublisher } from '../infrastructure/messaging/rabbitmq-order-publisher';
 import * as crypto from 'crypto';
 import { Inject, Injectable } from '@nestjs/common';
 
@@ -11,11 +9,10 @@ export class CreateOrderUseCase {
   constructor(
     @Inject('IOrderRepository')
     private readonly orderRepository: IOrderRepository,
-    @Inject('IMessagePublisher')
-    private readonly messagePublisher: IMessagePublisher,
+    private readonly messagePublisher: RabbitMqOrderPublisher,
   ) {}
 
-  async execute(input: CreateOrderDto): Promise<OrderDto> {
+  async execute(input: { customerId: string; items: Array<{ productId: string; quantity: number; price: number }> }) {
     const id = crypto.randomUUID();
     const order = Order.create(id, input.customerId, input.items);
     await this.orderRepository.save(order);

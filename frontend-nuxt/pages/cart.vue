@@ -14,14 +14,22 @@
     <div v-else class="grid grid-cols-1 lg:grid-cols-3 gap-8">
       <div class="lg:col-span-2 space-y-4">
         <div v-for="item in cart.items" :key="item.productId" class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center gap-4">
-          <div class="w-20 h-20 bg-gray-100 rounded-lg flex items-center justify-center text-2xl">📦</div>
+          <div class="w-20 h-20 bg-gray-100 rounded-lg flex items-center justify-center text-2xl overflow-hidden">
+            <img v-if="item.imageUrl" :src="item.imageUrl" :alt="item.name" class="w-full h-full object-cover" />
+            <span v-else>📦</span>
+          </div>
           <div class="flex-grow">
             <h3 class="font-bold text-gray-900">{{ item.name }}</h3>
-            <p class="text-gray-500 text-sm">Quantity: {{ item.quantity }}</p>
+            <div class="flex items-center gap-2 mt-2">
+              <button @click="cart.updateQuantity(item.productId, item.quantity - 1)" class="w-8 h-8 rounded-lg border border-gray-200 flex items-center justify-center hover:bg-gray-50 font-bold">−</button>
+              <span class="w-8 text-center font-bold">{{ item.quantity }}</span>
+              <button @click="cart.updateQuantity(item.productId, item.quantity + 1)" class="w-8 h-8 rounded-lg border border-gray-200 flex items-center justify-center hover:bg-gray-50 font-bold">+</button>
+            </div>
           </div>
           <div class="text-right">
-            <p class="font-black text-indigo-600">${{ item.price * item.quantity }}</p>
-            <p class="text-xs text-gray-400">${{ item.price }} / unit</p>
+            <p class="font-black text-indigo-600">${{ (item.price * item.quantity).toFixed(2) }}</p>
+            <p class="text-xs text-gray-400">${{ item.price.toFixed(2) }} / unit</p>
+            <button @click="cart.removeFromCart(item.productId)" class="text-xs text-rose-500 hover:text-rose-700 font-bold mt-1">Remove</button>
           </div>
         </div>
       </div>
@@ -31,7 +39,7 @@
         <div class="space-y-4 mb-6 pb-6 border-b border-gray-100">
           <div class="flex justify-between text-gray-600">
             <span>Subtotal</span>
-            <span>${{ total }}</span>
+            <span>${{ total.toFixed(2) }}</span>
           </div>
           <div class="flex justify-between text-gray-600">
             <span>Shipping</span>
@@ -40,7 +48,7 @@
         </div>
         <div class="flex justify-between items-center mb-8">
           <span class="text-lg font-bold text-gray-900">Total</span>
-          <span class="text-2xl font-black text-indigo-600">${{ total }}</span>
+          <span class="text-2xl font-black text-indigo-600">${{ total.toFixed(2) }}</span>
         </div>
         <button @click="handleCheckout" :disabled="loading" class="w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white font-black rounded-xl transition-all shadow-lg hover:shadow-indigo-200 disabled:opacity-50">
           {{ loading ? 'Processing...' : 'Place Order' }}
@@ -78,4 +86,6 @@ const handleCheckout = async () => {
     loading.value = false
   }
 }
+
+onMounted(() => cart.fetchCart())
 </script>

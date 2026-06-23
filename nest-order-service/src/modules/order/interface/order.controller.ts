@@ -1,30 +1,40 @@
-import { Controller, Post, Body, Get, Param } from '@nestjs/common';
+import { Controller, Post, Body, Get, Param, NotFoundException, Inject } from '@nestjs/common';
 import { CreateOrderUseCase } from '../application/create-order.use-case';
-import { FindOrderByIdUseCase } from '../application/find-order-by-id.use-case';
-import { FindOrdersByCustomerUseCase } from '../application/find-orders-by-customer.use-case';
-import { CreateOrderDto } from '../application/dtos/create-order.dto';
+import { IOrderRepository } from '../domain/order.repository.interface';
 
 @Controller('orders')
 export class OrderController {
   constructor(
     private readonly createOrderUseCase: CreateOrderUseCase,
-    private readonly findOrderByIdUseCase: FindOrderByIdUseCase,
-    private readonly findOrdersByCustomerUseCase: FindOrdersByCustomerUseCase,
+    @Inject('IOrderRepository')
+    private readonly orderRepository: IOrderRepository,
   ) {}
 
   @Post()
-  async create(@Body() body: CreateOrderDto) {
-    console.log('[Order Controller] Received order request:', body);
+  async create(@Body() body: { customerId: string; items: Array<{ productId: string; quantity: number; price: number }> }) {
     return await this.createOrderUseCase.execute(body);
   }
 
   @Get(':id')
   async findById(@Param('id') id: string) {
-    return await this.findOrderByIdUseCase.execute(id);
+    const order = await this.orderRepository.findById(id);
+    if (!order) throw new NotFoundException('Order not found');
+    return {
+      id: order.id, customerId: order.customerId, total: order.total,
+      status: order.status,
+      items: order.items.map(i => ({ productId: i.productId, quantity: i.quantity, price: i.price })),
+      createdAt: order.createdAt,
+    };
   }
 
   @Get('customer/:customerId')
   async findByCustomer(@Param('customerId') customerId: string) {
-    return await this.findOrdersByCustomerUseCase.execute(customerId);
+    const orders = await this.orderRepository.findByCustomerId(customerId);
+    return orders.map(order => ({
+      id: order.id, customerId: order.customerId, total: order.total,
+      status: order.status,
+      items: order.items.map(i => ({ productId: i.productId, quantity: i.quantity, price: i.price })),
+      createdAt: order.createdAt,
+    }));
   }
 }

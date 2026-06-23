@@ -1,7 +1,6 @@
 const crypto = require('crypto');
-const { ShipmentMapper } = require('./shipment.mapper');
+const { Shipment } = require('../../domain/shipment.entity');
 
-/** @implements {import('../../domain/ports/IShipmentRepository').IShipmentRepository} */
 class PgShipmentRepository {
   constructor(pool) {
     this.pool = pool;
@@ -11,19 +10,20 @@ class PgShipmentRepository {
     if (!shipment.id) {
       shipment.id = crypto.randomUUID();
     }
-    const data = ShipmentMapper.toPersistence(shipment);
     await this.pool.query(
       `INSERT INTO shipments (id, order_id, tracking_number, carrier, status)
        VALUES ($1, $2, $3, $4, $5)
        ON CONFLICT (id) DO UPDATE SET status = $5, updated_at = NOW()
        RETURNING *`,
-      [data.id, data.order_id, data.tracking_number, data.carrier, data.status]
+      [shipment.id, shipment.orderId, shipment.trackingNumber, shipment.carrier, shipment.status]
     );
   }
 
   async findByOrderId(orderId) {
     const result = await this.pool.query('SELECT * FROM shipments WHERE order_id = $1', [orderId]);
-    return ShipmentMapper.toDomain(result.rows[0]);
+    const row = result.rows[0];
+    if (!row) return null;
+    return new Shipment(row.id, row.order_id, row.tracking_number, row.carrier, row.status, row.created_at, row.updated_at);
   }
 
   async init() {
