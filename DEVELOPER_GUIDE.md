@@ -116,21 +116,37 @@ graph TB
 ```mermaid
 graph TB
   subgraph Domain
-    TEMPLATE["EmailTemplate<br/>Rich HTML formatting"]
+    TEMPLATE["EmailTemplate<br/>formatOrderConfirmation<br/>formatPaymentConfirmation<br/>formatOrderShipped"]
   end
   subgraph Application
     SENDORDER["SendOrderEmailUseCase<br/>order.created"]
+    SENDPAY["SendPaymentEmailUseCase<br/>payment.completed"]
     SENDSHIP["SendShippedEmailUseCase<br/>order.shipped"]
   end
   subgraph Infrastructure
-    MQ["RabbitMQ Consumer<br/>Listens order.created / order.shipped"]
+    MQ["RabbitMQ Consumer<br/>Listens order.created<br/>payment.completed<br/>order.shipped"]
     CAT["CatalogClient<br/>HTTP product names"]
     MAIL["MailProvider<br/>Nodemailer → Mailhog"]
   end
-  MQ --> SENDORDER & SENDSHIP
+  MQ --> SENDORDER & SENDPAY & SENDSHIP
   SENDORDER --> TEMPLATE & CAT & MAIL
+  SENDPAY --> TEMPLATE & MAIL
   SENDSHIP --> TEMPLATE & MAIL
 ```
+
+---
+
+## Frontend Features
+
+### Checkout flow (two-step)
+1. `/checkout` — collect shipping address → create order
+2. `/checkout/:id` — pay for order → `/order-success/:id`
+
+### Wishlist
+`stores/wishlist.ts` — Pinia store, localStorage-backed (no backend). Heart button on product cards, `/wishlist` page, badge in nav.
+
+### Admin dashboard
+`pages/admin/index.vue` — stat cards (products/orders/revenue/users), recent orders table, users list. Nav link in profile dropdown.
 
 ---
 
@@ -158,6 +174,7 @@ graph LR
   II --> O2[Order<br/>cancel]
 
   PC --> O3[Order<br/>mark PAID]
+  PC --> N3[Notification<br/>payment email]
   PC --> S[Shipping<br/>create shipment]
 
   PF --> O4[Order<br/>cancel]

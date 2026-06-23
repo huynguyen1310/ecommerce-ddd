@@ -20,6 +20,7 @@ graph TB
   P -->|payment.failed| R
   R --> O
   R --> S[Shipping Service]
+  R --> N
   R --> C
 
   S -->|order.shipped| R
@@ -31,7 +32,7 @@ graph TB
 
 ### `order.created`
 - **Source**: NestJS (Order Service)
-- **Target**: Laravel (Catalog Service), Notification Service
+- **Target**: Laravel (Catalog Service), Payment Service, Notification Service
 - **Routing Key**: `order.created`
 - **Payload**:
 ```json
@@ -41,6 +42,16 @@ graph TB
   "data": {
     "order_id": "uuid",
     "customer_id": "uuid",
+    "customer_email": "user@example.com",
+    "ordered_at": "ISO8601",
+    "shipping_address": {
+      "name": "Jane Doe",
+      "street": "123 Main St",
+      "city": "NYC",
+      "state": "NY",
+      "zip": "10001",
+      "country": "US"
+    },
     "items": [
       {
         "product_id": "uuid",
@@ -74,14 +85,28 @@ graph TB
 ```
 
 ### `inventory.insufficient`
-...
+- **Source**: Laravel (Catalog Service)
+- **Target**: Order Service (to cancel order)
+- **Routing Key**: `inventory.insufficient`
+- **Payload**:
+```json
+{
+  "event_id": "uuid",
+  "occurred_at": "ISO8601",
+  "data": {
+    "order_id": "uuid",
+    "product_id": "uuid",
+    "quantity_requested": 1,
+    "available_stock": 0
+  }
+}
 ```
 
 ## 3. Payment Service Events
 
 ### `payment.completed`
 - **Source**: Payment Service
-- **Target**: Order Service (to update status to 'PAID')
+- **Target**: Order Service, Shipping Service, Notification Service
 - **Routing Key**: `payment.completed`
 - **Payload**:
 ```json
@@ -90,9 +115,34 @@ graph TB
   "occurred_at": "ISO8601",
   "data": {
     "order_id": "uuid",
-    "transaction_id": "uuid",
-    "amount": 100.00,
-    "status": "SUCCESS"
+    "transaction_id": "TXN-XXXXXXXX",
+    "status": "SUCCESS",
+    "customer_email": "user@example.com",
+    "shipping_address": {
+      "name": "Jane Doe",
+      "street": "123 Main St",
+      "city": "NYC",
+      "state": "NY",
+      "zip": "10001",
+      "country": "US"
+    }
+  }
+}
+```
+
+### `payment.failed`
+- **Source**: Payment Service
+- **Target**: Order Service, Catalog Service
+- **Routing Key**: `payment.failed`
+- **Payload**:
+```json
+{
+  "event_id": "uuid",
+  "occurred_at": "ISO8601",
+  "data": {
+    "order_id": "uuid",
+    "reason": "User cancelled or payment failed",
+    "items": [{ "product_id": "uuid", "quantity": 1 }]
   }
 }
 ```

@@ -114,6 +114,23 @@ docker compose up --build
 
 Default admin: `admin@example.com` / `admin`
 
+## Frontend Features
+
+| Feature | Route | Description |
+|---------|-------|-------------|
+| **Home** | `/` | Product grid with search + staggered animation |
+| **Cart** | `/cart` | Full cart with quantity controls |
+| **Checkout** | `/checkout` | Shipping address form → payment → order success |
+| **Orders** | `/orders` | Order history |
+| **Wishlist** | `/wishlist` | localStorage-backed wishlist |
+| **Admin Dashboard** | `/admin` | Stats, recent orders, users (admin only) |
+| **Login/Register** | `/login`, `/register` | JWT auth |
+
+## Email (MailHog)
+
+All notification emails go to MailHog at **http://localhost:8025**.
+Two emails per order: order confirmation + payment confirmation.
+
 ## Project Structure
 
 ```mermaid

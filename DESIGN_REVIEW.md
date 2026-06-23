@@ -1657,3 +1657,19 @@ With these additions, you'll have an exemplary DDD + Hexagonal architecture wort
 
 **Recommendation**: Apply fixes in order (domain exceptions first, then events, then validation).
 
+---
+
+## Recent Additions (2026-06-23)
+
+### Added Features
+- **Checkout flow**: Two-step funnel (`/checkout` → `/checkout/:id` → `/order-success/:id`). `shippingAddress` (jsonb) added to Order domain, event payload, and email templates.
+- **Payment confirmation email**: `SendPaymentEmailUseCase` on `payment.completed` event. Customer email and shipping address threaded through `order.created` → payment DB → `payment.completed` event.
+- **Email templates updated**: Include customer name, shipping address, order date, gradient headers, contact link. Shared helpers `customerName()` and `addressBlock()`.
+- **Wishlist**: `stores/wishlist.ts` — localStorage-backed Pinia store with SSR hydration guard, `/wishlist` page, heart button on `ProductCard`.
+- **Admin dashboard**: `pages/admin/index.vue` with stats, orders, users tables. Nav moved to profile dropdown.
+- **Cart clear on checkout**: `DELETE /cart/:userId` endpoint added to cart service; called in `cart.checkout()`.
+
+### Fixes
+- RabbitMQ consumers now wrap processing in try/catch (order service, payment service) — no longer crash on invalid messages.
+- Notification service uses `customer_email` from event data instead of hardcoded `customer@example.com`.
+

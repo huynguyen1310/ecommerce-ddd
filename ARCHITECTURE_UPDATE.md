@@ -1,6 +1,6 @@
 # Architecture Review — Current State
 
-**Last Update**: 2026-06-22
+**Last Update**: 2026-06-23
 
 ---
 
@@ -11,7 +11,7 @@
 | Order (NestJS) | 9/10 | Strict Hexagonal |
 | Review (NestJS) | 9/10 | Strict Hexagonal |
 | Catalog (Laravel) | 8.5/10 | Pragmatic DDD |
-| Notification (Node) | 7.5/10 | Hexagonal |
+| Notification (Node) | 8/10 | Hexagonal |
 | Identity (Node) | 7/10 | Hexagonal |
 | Payment (Node) | 7/10 | Hexagonal |
 | Shipping (Node) | 7/10 | Hexagonal |
@@ -51,11 +51,11 @@
 - **API**: `POST /register`, `POST /login` (unchanged)
 - **Gap**: No formal port interface JS classes (JSDoc only)
 
-### Payment Service (Node) — 7/10
+### Payment Service (Node) — 7.5/10
 - Refactored from in-memory `Map` to persisted PostgreSQL (2026-06-22)
-- **Domain**: `Payment.entity.js` (id, orderId, status, transactionId, amount, items)
-- **Use case**: `ProcessPaymentUseCase` — validates PENDING status, prevents double-processing, publishes `payment.completed`/`payment.failed`
-- **Adapters**: `PgPaymentRepository` (UPSERT, JSONB items), RabbitMQ consumer (listens `order.created`), publisher
+- **Domain**: `Payment.entity.js` (id, orderId, status, transactionId, amount, items, customerEmail, shippingAddress)
+- **Use case**: `ProcessPaymentUseCase` — validates PENDING status, prevents double-processing, publishes `payment.completed`/`payment.failed` with customer details
+- **Adapters**: `PgPaymentRepository` (UPSERT, JSONB items + shipping_address), RabbitMQ consumer (listens `order.created`, stores email + address), publisher
 - **Queue**: `payment_service_orders` durable, named — no event loss on restart
 - **Gap**: No port interface JS classes
 
@@ -67,12 +67,13 @@
 - **API**: `GET /shipments/:orderId`
 - **Gap**: No port interface JS classes
 
-### Notification Service (Node) — 7.5/10
-- **Domain**: `EmailTemplate.js` — `formatOrderConfirmation()`, `formatOrderShipped()`
-- **Use cases**: `SendOrderEmailUseCase` (for `order.created`), `SendShippedEmailUseCase` (for `order.shipped`)
-- **Adapters**: RabbitMQ consumer (dispatches by routing key), CatalogClient (HTTP), MailProvider (Nodemailer)
-- **Queue**: `notification_emails` durable, bound to `order.created` + `order.shipped`
-- **Gap**: No formal port interface classes; `CatalogClient` hardcoded in composition root; always `ack()` on error (no DLQ)
+### Notification Service (Node) — 8/10
+- **Domain**: `EmailTemplate.js` — `formatOrderConfirmation()`, `formatOrderShipped()`, `formatPaymentConfirmation()`
+- **Use cases**: `SendOrderEmailUseCase` (for `order.created`), `SendShippedEmailUseCase` (for `order.shipped`), `SendPaymentEmailUseCase` (for `payment.completed`)
+- **Adapters**: RabbitMQ consumer (dispatches by routing key, bound to `order.created` + `order.shipped` + `payment.completed`), CatalogClient (HTTP), MailProvider (Nodemailer → MailHog)
+- **Emails use real customer email** from event data (no longer hardcoded `customer@example.com`)
+- **Queue**: `notification_emails` durable
+- **Gap**: No formal port interface classes
 
 ---
 
@@ -92,13 +93,14 @@ sequenceDiagram
   O->>R: publish order.created
   R-->>C: consume
   R-->>P: consume
-  R-->>N: consume
+  R-->>N: consume (order confirmation email)
   C->>R: publish inventory.deducted / inventory.insufficient
   R-->>O: consume inventory.deducted
   F->>P: POST pay (SUCCESS/FAILURE)
   alt payment.completed
-    P->>R: publish payment.completed
+    P->>R: publish payment.completed (includes customer_email + shipping_address)
     R-->>O: consume → status PAID
+    R-->>N: consume → send payment confirmation email
     R-->>S: consume → create shipment
     S->>R: publish order.shipped
     R-->>O: consume → status SHIPPED
