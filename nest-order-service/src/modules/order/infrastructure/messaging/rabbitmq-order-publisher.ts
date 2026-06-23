@@ -26,7 +26,7 @@ export class RabbitMqOrderPublisher implements OnModuleInit {
     }
   }
 
-  async publishOrderCreated(order: Order): Promise<void> {
+  async publishOrderCreated(order: Order, customerEmail?: string): Promise<void> {
     if (!this.channel) {
       console.error('[RabbitMQ] Channel not initialized');
       return;
@@ -38,6 +38,9 @@ export class RabbitMqOrderPublisher implements OnModuleInit {
       data: {
         order_id: order.id,
         customer_id: order.customerId,
+        customer_email: customerEmail,
+        ordered_at: order.createdAt.toISOString(),
+        shipping_address: order.shippingAddress,
         // Using snake_case for cross-service compatibility
         items: order.items.map(item => ({
             product_id: item.productId,

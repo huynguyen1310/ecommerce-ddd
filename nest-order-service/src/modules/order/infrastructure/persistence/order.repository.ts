@@ -17,15 +17,19 @@ export class TypeOrmOrderRepository implements IOrderRepository {
     await this.repository.save(orm);
   }
 
+  private mapOrder(orm: OrderOrmEntity): Order {
+    return new Order(orm.id, orm.customerId, orm.items, orm.status as any, Number(orm.total), orm.createdAt, orm.shippingAddress);
+  }
+
   async findById(id: string): Promise<Order | null> {
     const orm = await this.repository.findOne({ where: { id } });
     if (!orm) return null;
-    return new Order(orm.id, orm.customerId, orm.items, orm.status as any, Number(orm.total), orm.createdAt);
+    return this.mapOrder(orm);
   }
 
   async findAll(): Promise<Order[]> {
     const orms = await this.repository.find({ order: { createdAt: 'DESC' } });
-    return orms.map(orm => new Order(orm.id, orm.customerId, orm.items, orm.status as any, Number(orm.total), orm.createdAt));
+    return orms.map(orm => this.mapOrder(orm));
   }
 
   async findByCustomerId(customerId: string): Promise<Order[]> {
@@ -33,6 +37,6 @@ export class TypeOrmOrderRepository implements IOrderRepository {
       where: { customerId },
       order: { createdAt: 'DESC' },
     });
-    return orms.map(orm => new Order(orm.id, orm.customerId, orm.items, orm.status as any, Number(orm.total), orm.createdAt));
+    return orms.map(orm => this.mapOrder(orm));
   }
 }

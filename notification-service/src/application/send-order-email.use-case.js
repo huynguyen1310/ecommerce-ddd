@@ -7,7 +7,11 @@ class SendOrderEmailUseCase {
   }
 
   async execute(orderData) {
-    const { order_id, items } = orderData;
+    const { order_id, customer_email, items } = orderData;
+    if (!customer_email) {
+      console.log(`[Notification] No customer email for Order ${order_id}, skipping.`);
+      return;
+    }
     const trackingNumber = `TRK-${Math.random().toString(36).substring(2, 11).toUpperCase()}`;
 
     // Enrich items
@@ -23,12 +27,12 @@ class SendOrderEmailUseCase {
     const html = EmailTemplate.formatOrderConfirmation(orderData, enrichedItems, trackingNumber);
 
     const info = await this.mailProvider.sendMail({
-      to: "customer@example.com",
+      to: customer_email,
       subject: `Success! Order Confirmed #${order_id}`,
       html: html,
     });
 
-    console.log(`[Notification Use Case] Email sent for Order ${order_id}: ${info.messageId}`);
+    console.log(`[Notification Use Case] Email sent for Order ${order_id} to ${customer_email}: ${info.messageId}`);
   }
 }
 

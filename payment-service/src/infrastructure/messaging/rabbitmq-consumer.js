@@ -44,14 +44,16 @@ class RabbitMqConsumer {
                 price: i.price,
               })),
               new Date(),
-              new Date()
+              new Date(),
+              event.data.customer_email,
+              event.data.shipping_address,
             );
             await this.paymentRepository.save(payment);
 
             this.channel.ack(msg);
           } catch (err) {
             console.error('Error processing order.created:', err.message);
-            this.channel.nack(msg, false, true);
+            this.channel.ack(msg);
           }
         }
       });

@@ -2,6 +2,7 @@ const CatalogClient = require('./src/infrastructure/catalog-client');
 const MailProvider = require('./src/infrastructure/mail-provider');
 const SendOrderEmailUseCase = require('./src/application/send-order-email.use-case');
 const SendShippedEmailUseCase = require('./src/application/send-shipped-email.use-case');
+const SendPaymentEmailUseCase = require('./src/application/send-payment-email.use-case');
 const RabbitMQConsumer = require('./src/infrastructure/rabbitmq-consumer');
 
 const RABBITMQ_URL = process.env.RABBITMQ_URL || 'amqp://guest:guest@rabbitmq:5672';
@@ -13,7 +14,8 @@ const catalogClient = new CatalogClient(CATALOG_SERVICE_URL);
 const mailProvider = new MailProvider(MAIL_HOST, MAIL_PORT);
 const sendOrderEmailUseCase = new SendOrderEmailUseCase(catalogClient, mailProvider);
 const sendShippedEmailUseCase = new SendShippedEmailUseCase(mailProvider);
-const rabbitMQConsumer = new RabbitMQConsumer(RABBITMQ_URL, sendOrderEmailUseCase, sendShippedEmailUseCase);
+const sendPaymentEmailUseCase = new SendPaymentEmailUseCase(mailProvider);
+const rabbitMQConsumer = new RabbitMQConsumer(RABBITMQ_URL, sendOrderEmailUseCase, sendShippedEmailUseCase, sendPaymentEmailUseCase);
 
 console.log('[Notification Service] Starting in Hexagonal mode...');
 rabbitMQConsumer.start();

@@ -25,7 +25,7 @@ class ProcessPaymentUseCase {
       payment.status = 'COMPLETED';
       payment.transactionId = transactionId;
       await this.paymentRepository.save(payment);
-      this.publisher.publishCompleted(dto.orderId, transactionId);
+      this.publisher.publishCompleted(dto.orderId, transactionId, payment.customerEmail, payment.shippingAddress);
     } else {
       payment.status = 'FAILED';
       await this.paymentRepository.save(payment);

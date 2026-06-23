@@ -1,5 +1,12 @@
 <template>
   <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow flex flex-col h-full">
+    <div class="relative">
+      <button @click.stop="wishlist.toggle(product)" class="absolute top-2 right-2 z-10 w-8 h-8 rounded-full flex items-center justify-center transition-colors" :class="wishlist.has(product.id) ? 'bg-rose-500 text-white shadow-lg' : 'bg-white/80 text-gray-400 hover:text-rose-500 hover:bg-white'">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path v-if="!wishlist.has(product.id)" stroke-linecap="round" stroke-linejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+          <path v-else fill="currentColor" d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+        </svg>
+      </button>
     <NuxtLink :to="`/products/${product.id}`" class="h-48 bg-gray-50 flex items-center justify-center relative overflow-hidden">
       <img
         v-if="product.imageUrl"
@@ -19,6 +26,7 @@
         {{ product.category }}
       </div>
     </NuxtLink>
+    </div>
     <div class="p-5 flex flex-col flex-grow">
       <NuxtLink :to="`/products/${product.id}`" class="flex justify-between items-start mb-1">
         <h3 class="text-lg font-bold text-gray-900 line-clamp-1 hover:text-indigo-600 transition-colors">{{ product.name }}</h3>
@@ -59,6 +67,9 @@
 </template>
 
 <script setup>
+import { useWishlistStore } from '~/stores/wishlist'
+const wishlist = useWishlistStore()
+
 defineProps({
   product: { type: Object, required: true },
   avgRating: { type: Number, default: 0 },

@@ -74,17 +74,8 @@ const router = useRouter()
 const total = computed(() => cart.items.reduce((sum, i) => sum + (i.price * i.quantity), 0))
 const loading = ref(false)
 
-const handleCheckout = async () => {
-  loading.value = true
-  try {
-    const order = await cart.checkout()
-    notifications.success('Order placed! Redirecting to payment...')
-    router.push(`/checkout/${order.id}`)
-  } catch (err) {
-    notifications.error('Failed to place order. Please try again.')
-  } finally {
-    loading.value = false
-  }
+const handleCheckout = () => {
+  router.push('/checkout')
 }
 
 onMounted(() => cart.fetchCart())

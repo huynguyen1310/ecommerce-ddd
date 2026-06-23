@@ -38,9 +38,14 @@ export class RabbitMqOrderConsumer implements OnModuleInit {
 
       this.channel.consume(this.queue, async (msg) => {
         if (msg !== null) {
-          const content = JSON.parse(msg.content.toString());
-          await this.handleEvent(msg.fields.routingKey, content);
-          this.channel.ack(msg);
+          try {
+            const content = JSON.parse(msg.content.toString());
+            await this.handleEvent(msg.fields.routingKey, content);
+            this.channel.ack(msg);
+          } catch (error) {
+            console.error(`[RabbitMQ Consumer] Error processing message:`, (error as Error).message);
+            this.channel.ack(msg);
+          }
         }
       });
     } catch (error) {

@@ -80,4 +80,13 @@ app.delete('/cart/:userId/items/:productId', async (req, res) => {
   }
 })
 
+app.delete('/cart/:userId', async (req, res) => {
+  try {
+    await redis.del(cartKey(req.params.userId))
+    res.json([])
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
 app.listen(PORT, () => console.log(`Cart service on :${PORT}`))

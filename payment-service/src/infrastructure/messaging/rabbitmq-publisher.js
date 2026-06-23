@@ -7,7 +7,7 @@ class RabbitMqPublisher {
     this.exchange = exchange;
   }
 
-  publishCompleted(orderId, transactionId) {
+  publishCompleted(orderId, transactionId, customerEmail, shippingAddress) {
     const event = {
       event_id: crypto.randomUUID(),
       occurred_at: new Date().toISOString(),
@@ -15,6 +15,8 @@ class RabbitMqPublisher {
         order_id: orderId,
         transaction_id: transactionId,
         status: 'SUCCESS',
+        customer_email: customerEmail,
+        shipping_address: shippingAddress,
       },
     };
     this.channel.publish(this.exchange, 'payment.completed', Buffer.from(JSON.stringify(event)));

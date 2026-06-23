@@ -1,4 +1,5 @@
 import { Entity, PrimaryColumn, Column, CreateDateColumn } from 'typeorm';
+import { ShippingAddress } from '../../domain/order.entity';
 
 @Entity('orders')
 export class OrderOrmEntity {
@@ -16,6 +17,9 @@ export class OrderOrmEntity {
 
   @Column('decimal', { precision: 10, scale: 2 })
   total: number;
+
+  @Column('jsonb', { nullable: true })
+  shippingAddress?: ShippingAddress;
 
   @CreateDateColumn()
   createdAt: Date;

@@ -1,10 +1,11 @@
 const amqp = require('amqplib');
 
 class RabbitMQConsumer {
-  constructor(url, sendOrderEmailUseCase, sendShippedEmailUseCase) {
+  constructor(url, sendOrderEmailUseCase, sendShippedEmailUseCase, sendPaymentEmailUseCase) {
     this.url = url;
     this.sendOrderEmailUseCase = sendOrderEmailUseCase;
     this.sendShippedEmailUseCase = sendShippedEmailUseCase;
+    this.sendPaymentEmailUseCase = sendPaymentEmailUseCase;
   }
 
   async start() {
@@ -19,6 +20,7 @@ class RabbitMQConsumer {
       await channel.assertQueue(queue, { durable: true });
       await channel.bindQueue(queue, exchange, 'order.created');
       await channel.bindQueue(queue, exchange, 'order.shipped');
+      await channel.bindQueue(queue, exchange, 'payment.completed');
 
       console.log('[RabbitMQ Consumer] Waiting for order events...');
 
@@ -34,6 +36,9 @@ class RabbitMQConsumer {
             } else if (routingKey === 'order.shipped') {
               console.log(`[RabbitMQ Consumer] Order Shipped: ${content.data.order_id}`);
               await this.sendShippedEmailUseCase.execute(content.data);
+            } else if (routingKey === 'payment.completed') {
+              console.log(`[RabbitMQ Consumer] Payment completed: ${content.data.order_id}`);
+              await this.sendPaymentEmailUseCase.execute(content.data);
             }
 
             channel.ack(msg);

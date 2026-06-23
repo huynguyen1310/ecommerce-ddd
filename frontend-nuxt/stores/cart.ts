@@ -98,15 +98,17 @@ export const useCartStore = defineStore('cart', {
         useNotificationStore().error('Failed to remove item')
       }
     },
-    async checkout() {
+    async checkout(address) {
       const auth = useAuthStore()
       const payload = {
         customerId: auth.user?.id || guestId(),
+        customerEmail: auth.user?.email,
         items: this.items.map(i => ({
           productId: i.productId,
           quantity: i.quantity,
           price: i.price,
         })),
+        ...(address && { shippingAddress: address }),
       }
 
       try {
@@ -121,6 +123,10 @@ export const useCartStore = defineStore('cart', {
 
         if (response.ok) {
           const data = await response.json()
+          await $fetch(`${baseUrl()}/cart/${userId()}`, {
+            method: 'DELETE',
+            headers: authHeaders(),
+          })
           this.items = []
           return data
         }
