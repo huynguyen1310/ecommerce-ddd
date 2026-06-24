@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, Raw } from 'typeorm';
 import { IOrderRepository } from '../../domain/order.repository.interface';
 import { Order } from '../../domain/order.entity';
 import { OrderOrmEntity } from './order.orm-entity';
@@ -38,5 +38,12 @@ export class TypeOrmOrderRepository implements IOrderRepository {
       order: { createdAt: 'DESC' },
     });
     return orms.map(orm => this.mapOrder(orm));
+  }
+
+  async findByShopId(shopId: string): Promise<Order[]> {
+    const all = await this.repository.find({ order: { createdAt: 'DESC' } });
+    return all
+      .filter(orm => orm.items.some(i => i.shopId === shopId))
+      .map(orm => this.mapOrder(orm));
   }
 }

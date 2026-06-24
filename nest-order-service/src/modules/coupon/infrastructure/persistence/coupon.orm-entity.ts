@@ -26,6 +26,9 @@ export class CouponOrmEntity {
   @Column({ nullable: true })
   expiresAt: Date | null;
 
+  @Column({ nullable: true })
+  shopId: string | null;
+
   @Column({ default: true })
   isActive: boolean;
 

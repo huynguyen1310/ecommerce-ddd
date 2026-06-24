@@ -112,18 +112,33 @@ sequenceDiagram
 docker compose up --build
 ```
 
-Default admin: `admin@example.com` / `admin`
+### Seed Credentials
+
+| Role | Email | Password |
+|------|-------|----------|
+| **Admin** | `admin@example.com` | `admin` |
+| **Vendor 1** (Shop One) | `vendor1@example.com` | `password` |
+| **Vendor 2** (Shop Two) | `vendor2@example.com` | `password` |
+| **Vendor 3** (Shop Three) | `vendor3@example.com` | `password` |
+
+140 products pre-seeded, split across 3 shops (~40 each).
 
 ## Frontend Features
 
 | Feature | Route | Description |
 |---------|-------|-------------|
-| **Home** | `/` | Product grid with search + staggered animation |
-| **Cart** | `/cart` | Full cart with quantity controls |
-| **Checkout** | `/checkout` | Shipping address form → payment → order success |
+| **Home** | `/` | Product grid with search, staggered animation, "by Shop" links |
+| **Shop Page** | `/shops/:id` | Shop profile with product grid |
+| **Product** | `/products/:id` | Product detail with shop link, reviews |
+| **Cart** | `/cart` | Items grouped by shop, checkbox selection per item/shop |
+| **Checkout** | `/checkout` | Shipping form, coupon code, only selected items |
 | **Orders** | `/orders` | Order history |
 | **Wishlist** | `/wishlist` | localStorage-backed wishlist |
-| **Admin Dashboard** | `/admin` | Stats, recent orders, users (admin only) |
+| **Admin Dashboard** | `/admin` | Shop approval only |
+| **Vendor Dashboard** | `/vendor/dashboard` | Stock chart, low-stock alerts, product/orders/coupon links |
+| **Vendor Products** | `/vendor/products` | Manage products, update stock |
+| **Vendor Orders** | `/vendor/orders` | Incoming orders for your shop, mark shipped |
+| **Vendor Coupons** | `/vendor/coupons` | Shop-scoped coupon codes |
 | **Login/Register** | `/login`, `/register` | JWT auth |
 
 ## Email (MailHog)

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Core\Catalog\Application\UpdateStockUseCase;
+use App\Core\Catalog\Domain\ShopRepositoryInterface;
 use App\Core\Catalog\Infrastructure\Persistence\EloquentProductRepository;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -12,7 +13,8 @@ class ProductController extends Controller
     public function __construct(
         private EloquentProductRepository $productRepository,
         private UpdateStockUseCase $updateStockUseCase,
-        private \App\Core\Catalog\Application\CreateProductAction $createProductAction
+        private \App\Core\Catalog\Application\CreateProductAction $createProductAction,
+        private ShopRepositoryInterface $shopRepository,
     ) {}
 
     public function autocomplete(Request $request): JsonResponse
@@ -32,11 +34,34 @@ class ProductController extends Controller
             $request->query('search'),
             $request->query('category'),
             $request->query('sort', 'name'),
-            $request->query('order', 'asc')
+            $request->query('order', 'asc'),
+            $request->query('shop_id'),
         );
 
+        $shopIds = array_unique(array_filter(array_map(fn($p) => $p->shopId, $result['items'])));
+        $shops = !empty($shopIds) ? \App\Models\ShopEloquentModel::whereIn('id', $shopIds)->get()->keyBy('id') : collect();
+
+        $data = array_map(function ($p) use ($shops) {
+            $item = [
+                'id' => $p->id,
+                'name' => $p->name,
+                'sku' => $p->sku,
+                'price' => $p->price,
+                'stock' => $p->stock,
+                'imageUrl' => $p->imageUrl,
+                'description' => $p->description,
+                'category' => $p->category,
+                'shopId' => $p->shopId,
+            ];
+            if ($p->shopId && $shops->has($p->shopId)) {
+                $s = $shops->get($p->shopId);
+                $item['shop'] = ['id' => $s->id, 'name' => $s->name];
+            }
+            return $item;
+        }, $result['items']);
+
         return response()->json([
-            'data' => $result['items'],
+            'data' => $data,
             'meta' => [
                 'total' => $result['total'],
                 'page' => $result['page'],
@@ -64,6 +89,15 @@ class ProductController extends Controller
         if (!$product) {
             return response()->json(['error' => 'Product not found'], 404);
         }
+
+        $shop = null;
+        if ($product->shopId) {
+            $s = $this->shopRepository->findById($product->shopId);
+            if ($s) {
+                $shop = ['id' => $s->id, 'name' => $s->name, 'slug' => $s->slug];
+            }
+        }
+
         return response()->json([
             'id' => $product->id,
             'name' => $product->name,
@@ -73,11 +107,22 @@ class ProductController extends Controller
             'imageUrl' => $product->imageUrl,
             'description' => $product->description,
             'category' => $product->category,
+            'shop' => $shop,
         ]);
     }
 
     public function updateStock(Request $request, string $id): JsonResponse
     {
+        $product = $this->productRepository->findById($id);
+        if (!$product) {
+            return response()->json(['error' => 'Product not found'], 404);
+        }
+        if ($product->shopId) {
+            $shop = $this->shopRepository->findById($product->shopId);
+            if (!$shop || $shop->ownerId !== $request->input('jwt_user.id')) {
+                return response()->json(['error' => 'Forbidden'], 403);
+            }
+        }
         try {
             $this->updateStockUseCase->execute($id, (int) $request->stock);
             return response()->json(['message' => 'Stock updated successfully']);
@@ -93,7 +138,8 @@ class ProductController extends Controller
                 $request->name,
                 $request->sku,
                 (float) $request->price,
-                (int) $request->stock
+                (int) $request->stock,
+                $request->shop_id,
             );
             return response()->json(['message' => 'Product created', 'id' => $product->id], 201);
         } catch (\RuntimeException $e) {

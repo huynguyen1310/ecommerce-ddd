@@ -38,10 +38,13 @@ const publicPaths = [
   ['PATCH', '/cart'],
   ['DELETE', '/cart'],
   ['POST', '/coupons/validate'],
+  ['GET', '/shops'],
 ]
 
-const isPublic = (req) =>
-  publicPaths.some(([method, prefix]) => req.method === method && req.path.startsWith(prefix))
+const isPublic = (req) => {
+  if (req.path.startsWith('/shops/admin')) return false
+  return publicPaths.some(([method, prefix]) => req.method === method && req.path.startsWith(prefix))
+}
 
 app.use((req, res, next) => {
   console.log(`[Gateway] ${req.method} ${req.path}`)
@@ -50,6 +53,7 @@ app.use((req, res, next) => {
 })
 
 const routeMap = [
+  ['/shops', 'http://catalog-service:9000/api'],
   ['/api/products', 'http://catalog-service:9000'],
   ['/api/products/', 'http://catalog-service:9000'],
   ['/cart', 'http://cart-service:3004'],
@@ -59,6 +63,7 @@ const routeMap = [
   ['/reviews', 'http://review-service:4000'],
   ['/products/', 'http://review-service:4000'],
   ['/shipments', 'http://shipping-service:4001'],
+  ['/become-vendor', 'http://identity-service:3002'],
   ['/users', 'http://identity-service:3002'],
   ['/login', 'http://identity-service:3002'],
   ['/register', 'http://identity-service:3002'],

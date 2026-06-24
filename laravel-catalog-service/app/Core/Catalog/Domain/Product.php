@@ -12,12 +12,13 @@ class Product
         public int $stock,
         public readonly ?string $imageUrl = null,
         public readonly ?string $description = null,
-        public readonly ?string $category = null
+        public readonly ?string $category = null,
+        public readonly ?string $shopId = null,
     ) {}
 
-    public static function create(string $id, string $name, string $sku, float $price, int $stock, ?string $imageUrl = null, ?string $description = null, ?string $category = null): self
+    public static function create(string $id, string $name, string $sku, float $price, int $stock, ?string $imageUrl = null, ?string $description = null, ?string $category = null, ?string $shopId = null): self
     {
-        return new self($id, $name, $sku, $price, $stock, $imageUrl, $description, $category);
+        return new self($id, $name, $sku, $price, $stock, $imageUrl, $description, $category, $shopId);
     }
 
     public function reduceStock(int $quantity): void

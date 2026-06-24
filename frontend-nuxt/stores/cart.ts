@@ -31,7 +31,7 @@ function userId(): string {
 
 export const useCartStore = defineStore('cart', {
   state: () => ({
-    items: [] as Array<{ productId: string; name: string; quantity: number; price: number; imageUrl?: string }>,
+    items: [] as Array<{ productId: string; name: string; quantity: number; price: number; imageUrl?: string; shopId?: string; shopName?: string }>,
     loading: false,
   }),
   getters: {
@@ -64,6 +64,8 @@ export const useCartStore = defineStore('cart', {
             price: product.price,
             imageUrl: product.imageUrl || '',
             quantity: 1,
+            shopId: product.shop?.id || product.shopId,
+            shopName: product.shop?.name,
           },
         })
         this.items = data
@@ -98,15 +100,18 @@ export const useCartStore = defineStore('cart', {
         useNotificationStore().error('Failed to remove item')
       }
     },
-    async checkout(address, couponCode?) {
+    async checkout(address, couponCode?, items?) {
       const auth = useAuthStore()
+      const checkoutItems = items || this.items
       const payload = {
         customerId: auth.user?.id || guestId(),
         customerEmail: auth.user?.email,
-        items: this.items.map(i => ({
+        items: checkoutItems.map(i => ({
           productId: i.productId,
           quantity: i.quantity,
           price: i.price,
+          shopId: i.shopId,
+          shopName: i.shopName,
         })),
         ...(address && { shippingAddress: address }),
         ...(couponCode && { couponCode }),
@@ -124,11 +129,13 @@ export const useCartStore = defineStore('cart', {
 
         if (response.ok) {
           const data = await response.json()
-          await $fetch(`${baseUrl()}/cart/${userId()}`, {
-            method: 'DELETE',
-            headers: authHeaders(),
-          })
-          this.items = []
+          for (const item of checkoutItems) {
+            await $fetch(`${baseUrl()}/cart/${userId()}/items/${item.productId}`, {
+              method: 'DELETE',
+              headers: authHeaders(),
+            })
+          }
+          this.items = this.items.filter(i => !checkoutItems.find(c => c.productId === i.productId))
           return data
         }
         throw new Error('Failed to create order')

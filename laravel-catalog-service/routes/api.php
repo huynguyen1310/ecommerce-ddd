@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ProductController;
+use App\Http\Controllers\ShopController;
 
 Route::get('/products', [ProductController::class, 'index']);
 Route::get('/products/autocomplete', [ProductController::class, 'autocomplete']);
@@ -11,3 +12,10 @@ Route::get('/products/{id}', [ProductController::class, 'show']);
 Route::post('/products', [ProductController::class, 'store']);
 Route::patch('/products/{id}/stock', [ProductController::class, 'updateStock']);
 Route::delete('/products/{id}', [ProductController::class, 'destroy']);
+
+Route::post('/shops', [ShopController::class, 'store'])->middleware('jwt.auth');
+Route::get('/shops/my', [ShopController::class, 'my'])->middleware('jwt.auth');
+Route::get('/shops/admin/all', [ShopController::class, 'adminAll'])->middleware('jwt.auth');
+Route::patch('/shops/admin/{id}/approve', [ShopController::class, 'approve'])->middleware('jwt.auth');
+Route::get('/shops/{id}', [ShopController::class, 'show']);
+Route::get('/shops/{id}/products', [ShopController::class, 'products']);

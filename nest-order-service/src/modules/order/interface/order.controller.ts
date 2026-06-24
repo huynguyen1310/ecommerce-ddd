@@ -1,7 +1,7 @@
-import { Controller, Post, Body, Get, Param, NotFoundException, Inject } from '@nestjs/common';
+import { Controller, Post, Body, Get, Param, Patch, NotFoundException, BadRequestException, Inject } from '@nestjs/common';
 import { CreateOrderUseCase } from '../application/create-order.use-case';
 import { IOrderRepository } from '../domain/order.repository.interface';
-import { ShippingAddress } from '../domain/order.entity';
+import { ShippingAddress, OrderItem } from '../domain/order.entity';
 
 @Controller('orders')
 export class OrderController {
@@ -12,7 +12,7 @@ export class OrderController {
   ) {}
 
   @Post()
-  async create(@Body() body: { customerId: string; customerEmail?: string; items: Array<{ productId: string; quantity: number; price: number }>; shippingAddress?: ShippingAddress; couponCode?: string }) {
+  async create(@Body() body: { customerId: string; customerEmail?: string; items: OrderItem[]; shippingAddress?: ShippingAddress; couponCode?: string }) {
     return await this.createOrderUseCase.execute(body);
   }
 
@@ -23,7 +23,7 @@ export class OrderController {
       shippingAddress: order.shippingAddress,
       couponCode: order.couponCode,
       discount: order.discount ? Number(order.discount) : undefined,
-      items: order.items.map(i => ({ productId: i.productId, quantity: i.quantity, price: i.price })),
+      items: order.items.map(i => ({ productId: i.productId, quantity: i.quantity, price: i.price, shopId: i.shopId })),
       createdAt: order.createdAt,
     };
   }
@@ -32,6 +32,22 @@ export class OrderController {
   async findAll() {
     const orders = await this.orderRepository.findAll();
     return orders.map(this.formatOrder);
+  }
+
+  @Get('vendor/:shopId')
+  async findByShop(@Param('shopId') shopId: string) {
+    const orders = await this.orderRepository.findByShopId(shopId);
+    return orders.map(this.formatOrder);
+  }
+
+  @Patch(':id/ship')
+  async markShipped(@Param('id') id: string) {
+    const order = await this.orderRepository.findById(id);
+    if (!order) throw new NotFoundException('Order not found');
+    if (order.status !== 'PAID') throw new BadRequestException('Order must be PAID before shipping');
+    order.status = 'SHIPPED';
+    await this.orderRepository.save(order);
+    return { message: 'Order marked as shipped' };
   }
 
   @Get(':id')

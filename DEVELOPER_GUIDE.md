@@ -136,17 +136,41 @@ graph TB
 
 ---
 
+## Cart Service (Express + Redis)
+
+Lightweight service — no build step, no ORM. Cart data stored as Redis hashes:
+
+```
+cart:{userId} → hash of {productId → JSON({ name, price, imageUrl, quantity, shopId, shopName })}
+```
+
+**Endpoints**: `GET/POST /cart/:userId/items`, `PATCH/DELETE /cart/:userId/items/:productId`, `DELETE /cart/:userId`
+
+On `POST`, if the item exists the quantity is incremented and `shopId`/`shopName` are backfilled (fixes stale entries added before shop support).
+
 ## Frontend Features
 
 ### Checkout flow (two-step)
-1. `/checkout` — collect shipping address → create order
-2. `/checkout/:id` — pay for order → `/order-success/:id`
+1. `/cart` — grouped by shop, checkbox per item → only selected items go to checkout
+2. `/checkout` — shipping address form, coupon code → creates order
+3. `/checkout/:id` — pay → `/order-success/:id`
+
+Partial checkout (only checked items) deletes only those items from cart; unchecked items persist.
+
+### Cart — Multi-Vendor Grouping
+`pages/cart.vue` — items are grouped by `shopId` with a per-shop header showing the shop name. Each item has a checkbox; each shop group has a select-all toggle. The order summary shows selected count and total. "Place Order" only proceeds with checked items.
 
 ### Wishlist
 `stores/wishlist.ts` — Pinia store, localStorage-backed (no backend). Heart button on product cards, `/wishlist` page, badge in nav.
 
 ### Admin dashboard
-`pages/admin/index.vue` — stat cards (products/orders/revenue/users), recent orders table, users list. Nav link in profile dropdown.
+`pages/admin/index.vue` — stripped to pending shops list with Approve button only. No stats, orders, users, or coupons (those are vendor-owned).
+
+### Vendor Dashboard
+`/vendor/dashboard` — stock level bar chart (pure CSS, color-coded green/amber/red), low stock alert banner, action buttons for Products/Orders/Coupons.
+`/vendor/products` — CRUD products, update stock (auth-guarded: only shop owner can update).
+`/vendor/orders` — incoming orders containing vendor's products, "Mark Shipped" button.
+`/vendor/coupons` — create and list shop-scoped coupon codes.
 
 ---
 
@@ -199,8 +223,23 @@ All queues are named and durable. Events survive consumer restarts. Exclusive qu
 | Payment | PostgreSQL | Transactional integrity |
 | Review | PostgreSQL | JSONB not needed, consistency |
 | Shipping | PostgreSQL | Transactional |
+| Cart | Redis | Ephemeral, fast read/write |
 
 Shared-nothing: services only communicate via RabbitMQ. No cross-service DB access.
+
+## Seed Data
+
+Identity service auto-seeds on boot:
+- **Admin**: `admin@example.com` / `admin`
+- **3 vendors** with fixed UUIDs: `vendor1@example.com`, `vendor2@example.com`, `vendor3@example.com` / `password`
+
+Catalog service seeds via `php artisan db:seed`:
+- **3 shops** (Shop One/Two/Three) with matching `owner_id` UUIDs, status `active`
+- **140 products** split across shops (hash-based assignment, ~40 per shop)
+
+Fixed UUIDs are coordinated between services:
+- Vendors: `a1b2c3d4-...`, `b2c3d4e5-...`, `c3d4e5f6-...`
+- Shops: `d1e2f3a4-...`, `e2f3a4b5-...`, `f3a4b5c6-...`
 
 ---
 

@@ -1,5 +1,5 @@
 import { Entity, PrimaryColumn, Column, CreateDateColumn } from 'typeorm';
-import { ShippingAddress } from '../../domain/order.entity';
+import { ShippingAddress, OrderItem } from '../../domain/order.entity';
 
 @Entity('orders')
 export class OrderOrmEntity {
@@ -10,7 +10,7 @@ export class OrderOrmEntity {
   customerId: string;
 
   @Column('jsonb')
-  items: Array<{ productId: string; quantity: number; price: number }>;
+  items: OrderItem[];
 
   @Column()
   status: string;

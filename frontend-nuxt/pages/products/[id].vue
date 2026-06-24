@@ -27,7 +27,10 @@
       </div>
       <div class="p-8">
         <div class="flex justify-between items-start mb-2">
-          <h1 class="text-3xl font-black text-gray-900">{{ product.name }}</h1>
+          <div>
+            <h1 class="text-3xl font-black text-gray-900">{{ product.name }}</h1>
+            <p v-if="product.shop" class="text-sm text-gray-400 mt-1">Sold by <NuxtLink :to="`/shops/${product.shop.id}`" class="text-indigo-600 font-bold hover:underline">{{ product.shop.name }}</NuxtLink></p>
+          </div>
           <span class="text-3xl font-black text-indigo-600">${{ product.price }}</span>
         </div>
         <p class="text-gray-400 text-xs font-mono mb-4">SKU: {{ product.sku }}</p>

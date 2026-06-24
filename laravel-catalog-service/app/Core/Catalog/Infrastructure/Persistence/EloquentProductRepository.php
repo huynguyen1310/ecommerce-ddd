@@ -16,7 +16,7 @@ class EloquentProductRepository
     {
         $eloquent = ProductEloquentModel::find($id);
         if (!$eloquent) return null;
-        return new Product($eloquent->id, $eloquent->name, $eloquent->sku, (float) $eloquent->price, (int) $eloquent->stock, $eloquent->image_url, $eloquent->description, $eloquent->category);
+        return $this->map($eloquent);
     }
 
     public function save(Product $product): void
@@ -31,6 +31,7 @@ class EloquentProductRepository
                 'image_url' => $product->imageUrl,
                 'description' => $product->description,
                 'category' => $product->category,
+                'shop_id' => $product->shopId,
             ]
         );
 
@@ -43,7 +44,7 @@ class EloquentProductRepository
     {
         $eloquent = ProductEloquentModel::where('sku', $sku)->first();
         if (!$eloquent) return null;
-        return new Product($eloquent->id, $eloquent->name, $eloquent->sku, (float) $eloquent->price, (int) $eloquent->stock, $eloquent->image_url, $eloquent->description, $eloquent->category);
+        return $this->map($eloquent);
     }
 
     public function delete(string $id): void
@@ -60,13 +61,14 @@ class EloquentProductRepository
         return $this->searchIndex->suggest($query);
     }
 
-    public function findAll(int $page = 1, int $perPage = 12, ?string $search = null, ?string $category = null, string $sort = 'name', string $order = 'asc'): array
+    public function findAll(int $page = 1, int $perPage = 12, ?string $search = null, ?string $category = null, string $sort = 'name', string $order = 'asc', ?string $shopId = null): array
     {
         if ($search && $this->searchIndex) {
             $ids = $this->searchIndex->searchIds($search, $category, $page, $perPage);
             if (!empty($ids)) {
                 $query = ProductEloquentModel::whereIn('id', $ids)
                     ->orderByRaw('FIELD(id,' . implode(',', array_map(fn($id) => "'$id'", $ids)) . ')');
+                if ($shopId) $query->where('shop_id', $shopId);
                 $paginator = $query->paginate($perPage, ['*'], 'page', $page);
             } else {
                 $paginator = new \Illuminate\Pagination\LengthAwarePaginator([], 0, $perPage, $page);
@@ -74,11 +76,12 @@ class EloquentProductRepository
         } else {
             $query = ProductEloquentModel::orderBy($sort, $order);
             if ($category) $query->where('category', $category);
+            if ($shopId) $query->where('shop_id', $shopId);
             $paginator = $query->paginate($perPage, ['*'], 'page', $page);
         }
 
         return [
-            'items' => collect($paginator->items())->map(fn($e) => new Product($e->id, $e->name, $e->sku, (float) $e->price, (int) $e->stock, $e->image_url, $e->description, $e->category))->toArray(),
+            'items' => collect($paginator->items())->map(fn($e) => $this->map($e))->toArray(),
             'total' => $paginator->total(),
             'page' => $paginator->currentPage(),
             'perPage' => $paginator->perPage(),
@@ -90,7 +93,12 @@ class EloquentProductRepository
     {
         $query = ProductEloquentModel::where('category', $category);
         if ($excludeId) $query->where('id', '!=', $excludeId);
-        return $query->limit($limit)->get()->map(fn($e) => new Product($e->id, $e->name, $e->sku, (float) $e->price, (int) $e->stock, $e->image_url, $e->description, $e->category))->toArray();
+        return $query->limit($limit)->get()->map(fn($e) => $this->map($e))->toArray();
+    }
+
+    public function findByShopId(string $shopId): array
+    {
+        return ProductEloquentModel::where('shop_id', $shopId)->orderBy('name')->get()->map(fn($e) => $this->map($e))->toArray();
     }
 
     public function findAllCategories(): array
@@ -98,5 +106,10 @@ class EloquentProductRepository
         return ProductEloquentModel::select('category')
             ->distinct()->whereNotNull('category')->orderBy('category')
             ->pluck('category')->toArray();
+    }
+
+    private function map($e): Product
+    {
+        return new Product($e->id, $e->name, $e->sku, (float) $e->price, (int) $e->stock, $e->image_url, $e->description, $e->category, $e->shop_id);
     }
 }

@@ -31,6 +31,12 @@ class ProductSeeder extends Seeder
         'Observability', 'OpenTelemetry', 'Prometheus', 'Grafana',
     ];
 
+    private array $shopIds = [
+        'd1e2f3a4-b5c6-4789-a1b2-c3d4e5f6a7b8',
+        'e2f3a4b5-c6d7-4890-b2c3-d4e5f6a7b8c9',
+        'f3a4b5c6-d7e8-4901-c3d4-e5f6a7b8c9d0',
+    ];
+
     public function run(): void
     {
         $products = [];
@@ -52,6 +58,7 @@ class ProductSeeder extends Seeder
             }
             $usedSkus[] = $sku;
 
+            $shopIndex = min(intdiv($i - 1, 40), 2);
             $products[] = [
                 'id' => '550e8400-e29b-41d4-a716-' . str_pad((string) $i, 12, '0', STR_PAD_LEFT),
                 'name' => $name,
@@ -61,6 +68,7 @@ class ProductSeeder extends Seeder
                 'image_url' => 'https://placehold.co/400x400/' . $this->randomColor() . '/ffffff?text=' . urlencode(substr($topic1, 0, 12)) . '&font=raleway',
                 'description' => "Comprehensive guide to $topic1 and $topic2. " . $this->randomDescription($topic1, $topic2),
                 'category' => $category,
+                'shop_id' => $this->shopIds[$shopIndex],
             ];
         }
 
@@ -75,6 +83,7 @@ class ProductSeeder extends Seeder
                     'image_url' => $product['image_url'],
                     'description' => $product['description'],
                     'category' => $product['category'],
+                    'shop_id' => $product['shop_id'],
                     'updated_at' => now(),
                 ]
             );

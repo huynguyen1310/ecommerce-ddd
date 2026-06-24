@@ -2,13 +2,13 @@
   <div class="max-w-5xl mx-auto">
     <h1 class="text-4xl font-black text-gray-900 mb-8 tracking-tight">Checkout</h1>
 
-    <div v-if="cart.items.length === 0" class="text-center py-20 bg-white rounded-2xl border border-dashed border-gray-300">
+    <div v-if="checkoutItems.length === 0" class="text-center py-20 bg-white rounded-2xl border border-dashed border-gray-300">
       <span class="text-6xl mb-4 block">🛒</span>
-      <h2 class="text-2xl font-bold text-gray-900">Your cart is empty</h2>
-      <NuxtLink to="/" class="text-indigo-600 hover:underline mt-2 inline-block">Go shopping</NuxtLink>
+      <h2 class="text-2xl font-bold text-gray-900">Nothing to checkout</h2>
+      <NuxtLink to="/cart" class="text-indigo-600 hover:underline mt-2 inline-block">Back to cart</NuxtLink>
     </div>
 
-    <div v-else class="grid grid-cols-1 lg:grid-cols-5 gap-8">
+    <div v-else-if="checkoutItems.length > 0" class="grid grid-cols-1 lg:grid-cols-5 gap-8">
       <div class="lg:col-span-3 space-y-6">
         <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
           <h2 class="text-lg font-bold text-gray-900 mb-6">Shipping Address</h2>
@@ -49,7 +49,7 @@
         <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 sticky top-24">
           <h2 class="text-lg font-bold text-gray-900 mb-6">Order Summary</h2>
           <div class="space-y-4 mb-6">
-            <div v-for="item in cart.items" :key="item.productId" class="flex items-center gap-3">
+            <div v-for="item in checkoutItems" :key="item.productId" class="flex items-center gap-3">
               <div class="w-12 h-12 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
                 <img v-if="item.imageUrl" :src="item.imageUrl" :alt="item.name" class="w-full h-full object-cover" />
                 <span v-else class="flex items-center justify-center h-full text-lg">📦</span>
@@ -95,11 +95,18 @@ const cart = useCartStore()
 const auth = useAuthStore()
 const notifications = useNotificationStore()
 const router = useRouter()
+const route = useRoute()
 const config = useRuntimeConfig()
+
+const selectedIds = computed(() => {
+  const q = route.query.items
+  return q ? new Set(q.split(',').filter(Boolean)) : new Set()
+})
+const checkoutItems = computed(() => cart.items.filter(i => selectedIds.value.has(i.productId)))
 
 const address = ref({ name: '', street: '', city: '', state: '', zip: '', country: 'US' })
 const submitting = ref(false)
-const subtotal = computed(() => cart.items.reduce((s, i) => s + i.price * i.quantity, 0))
+const subtotal = computed(() => checkoutItems.value.reduce((s, i) => s + i.price * i.quantity, 0))
 const couponInput = ref('')
 const couponLoading = ref(false)
 const couponError = ref('')
@@ -136,7 +143,7 @@ const submitOrder = async () => {
   }
   submitting.value = true
   try {
-    const order = await cart.checkout(address.value, appliedCoupon.value || undefined)
+    const order = await cart.checkout(address.value, appliedCoupon.value || undefined, checkoutItems.value)
     notifications.success('Order placed! Redirecting to payment...')
     router.push(`/checkout/${order.id}`)
   } catch (err) {

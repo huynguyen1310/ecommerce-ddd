@@ -22,6 +22,8 @@
             </button>
             <div v-if="showMenu" class="absolute right-0 top-full mt-2 w-56 bg-white rounded-xl border border-gray-100 shadow-lg z-50 py-1.5 overflow-hidden">
               <NuxtLink to="/profile" @click="showMenu = false" class="block px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors">Profile</NuxtLink>
+              <NuxtLink v-if="auth.isVendor" to="/vendor/dashboard" @click="showMenu = false" class="block px-4 py-2.5 text-sm text-indigo-600 font-bold hover:bg-indigo-50 transition-colors">🏪 My Shop</NuxtLink>
+              <NuxtLink v-else-if="!auth.isAdmin" to="/vendor/create" @click="showMenu = false" class="block px-4 py-2.5 text-sm text-indigo-600 font-bold hover:bg-indigo-50 transition-colors">🏪 Become a Vendor</NuxtLink>
               <NuxtLink v-if="auth.isAdmin" to="/admin" @click="showMenu = false" class="block px-4 py-2.5 text-sm text-amber-600 font-bold hover:bg-amber-50 transition-colors">⚡ Admin Dashboard</NuxtLink>
               <hr class="my-1.5 border-gray-100" />
               <button @click="handleLogout" class="block w-full text-left px-4 py-2.5 text-sm text-rose-600 font-bold hover:bg-rose-50 transition-colors">Logout</button>

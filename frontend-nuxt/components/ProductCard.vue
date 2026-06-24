@@ -31,6 +31,7 @@
       <NuxtLink :to="`/products/${product.id}`" class="flex justify-between items-start mb-1">
         <h3 class="text-lg font-bold text-gray-900 line-clamp-1 hover:text-indigo-600 transition-colors">{{ product.name }}</h3>
       </NuxtLink>
+      <p v-if="product.shop" class="text-xs text-gray-400 mb-2">by <NuxtLink :to="`/shops/${product.shop.id}`" class="text-indigo-500 hover:underline font-medium">{{ product.shop.name }}</NuxtLink></p>
       <p v-if="product.description" class="text-gray-500 text-sm line-clamp-2 mb-3">{{ product.description }}</p>
       <p v-else class="text-gray-400 text-[10px] font-mono mb-3 uppercase tracking-tighter">SKU: {{ product.sku }}</p>
 

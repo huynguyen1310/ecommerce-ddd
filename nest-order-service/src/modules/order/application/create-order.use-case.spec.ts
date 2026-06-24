@@ -7,7 +7,7 @@ describe('CreateOrderUseCase', () => {
   let mockPublisher: any;
 
   beforeEach(() => {
-    mockRepo = { save: jest.fn(), findById: jest.fn(), findByCustomerId: jest.fn(), findAll: jest.fn() };
+    mockRepo = { save: jest.fn(), findById: jest.fn(), findByCustomerId: jest.fn(), findAll: jest.fn(), findByShopId: jest.fn() };
     mockPublisher = { publishOrderCreated: jest.fn() };
     const mockCouponRepo = { findOneBy: jest.fn(), update: jest.fn() };
     useCase = new CreateOrderUseCase(mockRepo, mockPublisher, mockCouponRepo as any);
