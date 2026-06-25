@@ -37,6 +37,7 @@ class ConsumeOrderEvents extends Command
             $channel->queue_declare($queueName, false, true, false, false);
             $channel->queue_bind($queueName, $exchange, 'order.created');
             $channel->queue_bind($queueName, $exchange, 'payment.failed');
+            $channel->queue_bind($queueName, $exchange, 'refund.completed');
 
             $this->info(" [*] Waiting for messages. To exit press CTRL+C");
 

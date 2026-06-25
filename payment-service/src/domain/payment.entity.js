@@ -2,7 +2,7 @@ class Payment {
   constructor(id, orderId, status, transactionId, amount, items, createdAt, updatedAt, customerEmail, shippingAddress) {
     this.id = id;
     this.orderId = orderId;
-    this.status = status; // PENDING | COMPLETED | FAILED
+    this.status = status; // PENDING | COMPLETED | FAILED | REFUNDED
     this.transactionId = transactionId;
     this.amount = amount;
     this.items = items; // [{ productId, quantity }]

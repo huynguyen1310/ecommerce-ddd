@@ -126,6 +126,7 @@ const getStatusIcon = (status) => {
     case 'PAID': return '✅'
     case 'SHIPPED': return '📦'
     case 'CANCELLED': return '❌'
+    case 'REFUNDED': return '💰'
     default: return '📄'
   }
 }
@@ -136,6 +137,7 @@ const getStatusBg = (status) => {
     case 'PAID': return 'bg-green-50'
     case 'SHIPPED': return 'bg-blue-50'
     case 'CANCELLED': return 'bg-rose-50'
+    case 'REFUNDED': return 'bg-purple-50'
     default: return 'bg-gray-50'
   }
 }
@@ -146,6 +148,7 @@ const getStatusBadgeClass = (status) => {
     case 'PAID': return 'bg-green-100 text-green-700'
     case 'SHIPPED': return 'bg-blue-100 text-blue-700'
     case 'CANCELLED': return 'bg-rose-100 text-rose-700'
+    case 'REFUNDED': return 'bg-purple-100 text-purple-700'
     default: return 'bg-gray-100 text-gray-700'
   }
 }

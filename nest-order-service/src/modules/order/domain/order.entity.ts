@@ -14,7 +14,7 @@ export class Order {
     public readonly id: string,
     public readonly customerId: string,
     public readonly items: OrderItem[],
-    public status: 'PENDING' | 'PAID' | 'SHIPPED' | 'CANCELLED',
+    public status: 'PENDING' | 'PAID' | 'SHIPPED' | 'CANCELLED' | 'REFUNDED',
     public readonly total: number,
     public readonly createdAt: Date,
     public readonly shippingAddress?: ShippingAddress,

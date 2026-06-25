@@ -23,7 +23,7 @@ const EXCHANGE_EVENTS = 'events';
 const paymentRepository = new PgPaymentRepository(pool);
 const publisher = new RabbitMqPublisher({ publish: () => {} }, EXCHANGE_EVENTS); // stub until channel ready
 const processPaymentUseCase = new ProcessPaymentUseCase(paymentRepository, publisher);
-const paymentController = new PaymentController(processPaymentUseCase, paymentRepository);
+const paymentController = new PaymentController(processPaymentUseCase, paymentRepository, publisher);
 
 const app = express();
 app.use(cors());
@@ -31,6 +31,7 @@ app.use(express.json());
 
 app.post('/payments/:orderId/process', (req, res) => paymentController.process(req, res));
 app.get('/payments/:orderId', (req, res) => paymentController.getByOrder(req, res));
+app.post('/refunds/:orderId', (req, res) => paymentController.refund(req, res));
 
 const initDb = async (retries = 5) => {
   try {

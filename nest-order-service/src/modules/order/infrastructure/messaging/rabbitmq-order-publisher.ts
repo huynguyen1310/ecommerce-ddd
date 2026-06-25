@@ -61,4 +61,33 @@ export class RabbitMqOrderPublisher implements OnModuleInit {
 
     console.log(`[RabbitMQ] Published event: ${routingKey}`);
   }
+
+  async publishRefundCreated(returnRequest: any, customerId: string): Promise<void> {
+    if (!this.channel) return;
+    const payload = {
+      event_id: crypto.randomUUID(),
+      occurred_at: new Date().toISOString(),
+      data: {
+        return_id: returnRequest.id,
+        order_id: returnRequest.orderId,
+        buyer_id: returnRequest.buyerId,
+        reason: returnRequest.reason,
+        amount: returnRequest.refundAmount,
+        status: returnRequest.status,
+      },
+    };
+    this.channel.publish(this.exchange, 'refund.created', Buffer.from(JSON.stringify(payload)), { persistent: true });
+    console.log('[RabbitMQ] Published event: refund.created');
+  }
+
+  async publishRefundCompleted(orderId: string, amount: number, items?: { product_id: string; quantity: number }[]): Promise<void> {
+    if (!this.channel) return;
+    const payload = {
+      event_id: crypto.randomUUID(),
+      occurred_at: new Date().toISOString(),
+      data: { order_id: orderId, amount, items: items || [] },
+    };
+    this.channel.publish(this.exchange, 'refund.completed', Buffer.from(JSON.stringify(payload)), { persistent: true });
+    console.log('[RabbitMQ] Published event: refund.completed');
+  }
 }

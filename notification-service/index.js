@@ -15,7 +15,7 @@ const mailProvider = new MailProvider(MAIL_HOST, MAIL_PORT);
 const sendOrderEmailUseCase = new SendOrderEmailUseCase(catalogClient, mailProvider);
 const sendShippedEmailUseCase = new SendShippedEmailUseCase(mailProvider);
 const sendPaymentEmailUseCase = new SendPaymentEmailUseCase(mailProvider);
-const rabbitMQConsumer = new RabbitMQConsumer(RABBITMQ_URL, sendOrderEmailUseCase, sendShippedEmailUseCase, sendPaymentEmailUseCase);
+const rabbitMQConsumer = new RabbitMQConsumer(RABBITMQ_URL, sendOrderEmailUseCase, sendShippedEmailUseCase, sendPaymentEmailUseCase, mailProvider);
 
 console.log('[Notification Service] Starting in Hexagonal mode...');
 rabbitMQConsumer.start();

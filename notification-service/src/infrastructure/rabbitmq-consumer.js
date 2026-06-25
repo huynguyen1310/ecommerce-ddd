@@ -1,11 +1,12 @@
 const amqp = require('amqplib');
 
 class RabbitMQConsumer {
-  constructor(url, sendOrderEmailUseCase, sendShippedEmailUseCase, sendPaymentEmailUseCase) {
+  constructor(url, sendOrderEmailUseCase, sendShippedEmailUseCase, sendPaymentEmailUseCase, mailProvider) {
     this.url = url;
     this.sendOrderEmailUseCase = sendOrderEmailUseCase;
     this.sendShippedEmailUseCase = sendShippedEmailUseCase;
     this.sendPaymentEmailUseCase = sendPaymentEmailUseCase;
+    this.mailProvider = mailProvider;
   }
 
   async start() {
@@ -21,6 +22,8 @@ class RabbitMQConsumer {
       await channel.bindQueue(queue, exchange, 'order.created');
       await channel.bindQueue(queue, exchange, 'order.shipped');
       await channel.bindQueue(queue, exchange, 'payment.completed');
+      await channel.bindQueue(queue, exchange, 'refund.created');
+      await channel.bindQueue(queue, exchange, 'refund.completed');
 
       console.log('[RabbitMQ Consumer] Waiting for order events...');
 
@@ -39,6 +42,24 @@ class RabbitMQConsumer {
             } else if (routingKey === 'payment.completed') {
               console.log(`[RabbitMQ Consumer] Payment completed: ${content.data.order_id}`);
               await this.sendPaymentEmailUseCase.execute(content.data);
+            } else if (routingKey === 'refund.created') {
+              console.log(`[RabbitMQ Consumer] Refund requested: ${content.data.return_id}`);
+              if (this.mailProvider) {
+                await this.mailProvider.send({
+                  to: content.data.buyer_id,
+                  subject: 'Return Request Received',
+                  text: `Your return request for order ${content.data.order_id} has been received. Reason: ${content.data.reason}. We'll notify you once it's processed.`,
+                });
+              }
+            } else if (routingKey === 'refund.completed') {
+              console.log(`[RabbitMQ Consumer] Refund completed: ${content.data.order_id}`);
+              if (this.mailProvider) {
+                await this.mailProvider.send({
+                  to: content.data.buyer_id,
+                  subject: 'Refund Processed',
+                  text: `Your refund of $${content.data.amount} for order ${content.data.order_id} has been processed.`,
+                });
+              }
             }
 
             channel.ack(msg);

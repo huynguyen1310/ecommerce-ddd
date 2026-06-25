@@ -24,6 +24,26 @@ class RabbitMQOrderConsumer
             $this->handleOrderCreated($orderId, $orderData);
         } elseif ($routingKey === 'payment.failed') {
             $this->handlePaymentFailed($orderId, $orderData);
+        } elseif ($routingKey === 'refund.completed') {
+            $this->handleRefundCompleted($orderId, $orderData);
+        }
+    }
+
+    private function handleRefundCompleted(string $orderId, array $orderData): void
+    {
+        echo "[RabbitMQ] Consuming refund.completed for Order ID: " . $orderId . ". Restocking items..." . PHP_EOL;
+        \Illuminate\Support\Facades\DB::beginTransaction();
+        try {
+            if (isset($orderData['items'])) {
+                foreach ($orderData['items'] as $item) {
+                    $this->restockUseCase->execute($item['product_id'], $item['quantity']);
+                }
+            }
+            \Illuminate\Support\Facades\DB::commit();
+            echo "[RabbitMQ] Restocking completed for Order ID: " . $orderId . PHP_EOL;
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\DB::rollBack();
+            echo "[RabbitMQ] Restocking error: " . $e->getMessage() . PHP_EOL;
         }
     }
 
