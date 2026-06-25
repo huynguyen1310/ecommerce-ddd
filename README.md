@@ -17,7 +17,7 @@ graph TB
   subgraph Backend
     ORDER["Order Service<br/>NestJS :3001"]
     CAT["Catalog Service<br/>Laravel :8000"]
-    ID["Identity Service<br/>Express :3002"]
+    ID["User Service<br/>Express :3002"]
     PAY["Payment Service<br/>Express :3003"]
     RVW["Review Service<br/>NestJS :4000"]
     SHP["Shipping Service<br/>Express :4001"]

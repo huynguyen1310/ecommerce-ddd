@@ -6,7 +6,7 @@ class PgUserRepository {
   }
 
   async findAll() {
-    const result = await this.pool.query('SELECT id, email, role FROM users ORDER BY email');
+    const result = await this.pool.query('SELECT id, email, role, shop_id FROM users ORDER BY email');
     return result.rows;
   }
 
@@ -14,7 +14,7 @@ class PgUserRepository {
     const result = await this.pool.query('SELECT * FROM users WHERE email = $1', [email]);
     const row = result.rows[0];
     if (!row) return null;
-    return new User(row.id, row.email, row.password, row.role);
+    return new User(row.id, row.email, row.password, row.role, row.shop_id);
   }
 
   async save(user) {
@@ -32,11 +32,15 @@ class PgUserRepository {
     const result = await this.pool.query('SELECT * FROM users WHERE id = $1', [id]);
     const row = result.rows[0];
     if (!row) return null;
-    return new User(row.id, row.email, row.password, row.role);
+    return new User(row.id, row.email, row.password, row.role, row.shop_id);
   }
 
   async updateRole(id, role) {
     await this.pool.query('UPDATE users SET role = $1 WHERE id = $2', [role, id]);
+  }
+
+  async updateShopId(id, shopId) {
+    await this.pool.query('UPDATE users SET shop_id = $1 WHERE id = $2', [shopId, id]);
   }
 
   async init() {
@@ -45,7 +49,21 @@ class PgUserRepository {
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         email TEXT UNIQUE NOT NULL,
         password TEXT NOT NULL,
-        role TEXT DEFAULT 'customer'
+        role TEXT DEFAULT 'customer',
+        shop_id VARCHAR
+      );
+    `);
+    await this.pool.query(`
+      CREATE TABLE IF NOT EXISTS chat_messages (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        shop_id VARCHAR NOT NULL,
+        shop_name VARCHAR,
+        buyer_id VARCHAR NOT NULL,
+        message TEXT NOT NULL,
+        product_id VARCHAR,
+        product_name VARCHAR,
+        is_read BOOLEAN DEFAULT false,
+        created_at TIMESTAMP DEFAULT NOW()
       );
     `);
   }

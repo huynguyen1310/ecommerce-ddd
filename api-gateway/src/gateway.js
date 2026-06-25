@@ -63,10 +63,11 @@ const routeMap = [
   ['/reviews', 'http://review-service:4000'],
   ['/products/', 'http://review-service:4000'],
   ['/shipments', 'http://shipping-service:4001'],
-  ['/become-vendor', 'http://identity-service:3002'],
-  ['/users', 'http://identity-service:3002'],
-  ['/login', 'http://identity-service:3002'],
-  ['/register', 'http://identity-service:3002'],
+  ['/chat', 'http://user-service:3002'],
+  ['/become-vendor', 'http://user-service:3002'],
+  ['/users', 'http://user-service:3002'],
+  ['/login', 'http://user-service:3002'],
+  ['/register', 'http://user-service:3002'],
 ]
 
 const proxyRequest = (target, req, res) => {

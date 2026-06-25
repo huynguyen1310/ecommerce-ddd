@@ -11,6 +11,10 @@
             Wishlist
             <span v-if="wishlist.count > 0" class="ml-1 px-2 py-0.5 text-xs bg-rose-500 text-white rounded-full">{{ wishlist.count }}</span>
           </NuxtLink>
+          <NuxtLink v-if="auth.isLoggedIn" to="/messages" class="text-gray-600 hover:text-indigo-600 transition-colors font-medium flex items-center">
+            Messages
+            <span v-if="unreadCount > 0" class="ml-1.5 px-1.5 py-0.5 text-xs bg-rose-500 text-white rounded-full">{{ unreadCount > 99 ? '99+' : unreadCount }}</span>
+          </NuxtLink>
           <NuxtLink to="/cart" class="text-gray-600 hover:text-indigo-600 transition-colors font-medium flex items-center">
             Cart
             <span v-if="cartCount > 0" class="ml-1 px-2 py-0.5 text-xs bg-indigo-600 text-white rounded-full">{{ cartCount }}</span>
@@ -57,9 +61,21 @@ const cartStore = useCartStore()
 const wishlist = useWishlistStore()
 const auth = useAuthStore()
 const router = useRouter()
+const config = useRuntimeConfig()
 const showMenu = ref(false)
+const unreadCount = ref(0)
+let unreadTimer = null
 
 const cartCount = computed(() => cartStore.items.reduce((sum, item) => sum + item.quantity, 0))
+
+const fetchUnread = async () => {
+  if (!auth.isLoggedIn) return
+  try {
+    const apiBaseUrl = process.server ? config.apiGatewayInternalUrl : config.public.apiGatewayUrl
+    const { count } = await $fetch(`${apiBaseUrl}/chat/unread-count`, { headers: auth.token ? { Authorization: `Bearer ${auth.token}` } : {} })
+    unreadCount.value = count
+  } catch {}
+}
 
 const handleLogout = () => {
   auth.logout()
@@ -70,9 +86,14 @@ onMounted(() => {
   wishlist.hydrate()
   cartStore.fetchCart()
   document.addEventListener('click', handleClickOutside)
+  fetchUnread()
+  unreadTimer = setInterval(fetchUnread, 10000)
 })
 
-onUnmounted(() => document.removeEventListener('click', handleClickOutside))
+onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutside)
+  if (unreadTimer) clearInterval(unreadTimer)
+})
 
 const handleClickOutside = (e) => {
   if (showMenu.value && !e.target.closest('.profile-menu')) showMenu.value = false

@@ -111,28 +111,28 @@ services:
       - catalog-db
       - rabbitmq
 
-  # Identity Service (Auth)
-  identity-db:
+  # User Service (Auth + Chat)
+  user-db:
     image: postgres:15-alpine
-    container_name: ecom-identity-db
+    container_name: ecom-user-db
     environment:
-      POSTGRES_DB: identity_service
+      POSTGRES_DB: user_service
       POSTGRES_USER: user
       POSTGRES_PASSWORD: password
     ports:
       - "5433:5432"
 
-  identity-service:
+  user-service:
     build:
-      context: ./identity-service
-    container_name: ecom-identity-service
+      context: ./user-service
+    container_name: ecom-user-service
     ports:
       - "3002:3002"
     environment:
-      DATABASE_URL: postgresql://user:password@identity-db:5432/identity_service
+      DATABASE_URL: postgresql://user:password@user-db:5432/user_service
       JWT_SECRET: super-secret-key
     depends_on:
-      - identity-db
+      - user-db
 
   # PostgreSQL for Review Service
   review-db:
@@ -248,7 +248,7 @@ services:
     depends_on:
       - order-service
       - catalog-service
-      - identity-service
+      - user-service
       - payment-service
       - review-service
       - shipping-service

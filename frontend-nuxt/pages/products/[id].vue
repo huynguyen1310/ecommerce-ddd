@@ -40,18 +40,27 @@
         <div class="flex items-center gap-4 mb-6">
           <span v-if="product.stock > 0" class="text-sm font-bold text-emerald-600 bg-emerald-50 px-3 py-1 rounded-lg border border-emerald-100">In Stock ({{ product.stock }} available)</span>
           <span v-else class="text-sm font-bold text-rose-600 bg-rose-50 px-3 py-1 rounded-lg border border-rose-100">Out of Stock</span>
-          <button
-            @click="cart.addToCart(product)"
-            :disabled="product.stock === 0"
-            :class="[
-              'px-6 py-3 font-black rounded-xl transition-all shadow-lg active:scale-95',
-              product.stock === 0
-                ? 'bg-gray-100 text-gray-400 cursor-not-allowed shadow-none'
-                : 'bg-indigo-600 hover:bg-indigo-700 text-white'
-            ]"
-          >
-            {{ product.stock === 0 ? 'Out of Stock' : 'Add to Cart' }}
-          </button>
+          <div class="flex items-center gap-2">
+            <button
+              @click="cart.addToCart(product)"
+              :disabled="product.stock === 0"
+              :class="[
+                'px-6 py-3 font-black rounded-xl transition-all shadow-lg active:scale-95',
+                product.stock === 0
+                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed shadow-none'
+                  : 'bg-indigo-600 hover:bg-indigo-700 text-white'
+              ]"
+            >
+              {{ product.stock === 0 ? 'Out of Stock' : 'Add to Cart' }}
+            </button>
+            <button
+              v-if="auth.isLoggedIn && product.shop"
+              @click="openChat"
+              class="px-4 py-3 font-bold rounded-xl border border-gray-200 text-gray-600 hover:bg-gray-50 transition-all text-sm"
+            >
+              Chat
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -166,6 +175,7 @@ const auth = useAuthStore()
 const notifications = useNotificationStore()
 const recentlyViewed = useRecentlyViewedStore()
 const route = useRoute()
+const router = useRouter()
 const config = useRuntimeConfig()
 const apiBaseUrl = process.server ? config.apiGatewayInternalUrl : config.public.apiGatewayUrl
 
@@ -229,6 +239,18 @@ async function submitReview() {
   } catch (err) {
     console.error('Failed to submit review:', err)
   }
+}
+
+function openChat() {
+  const shop = product.value.shop
+  if (!shop) return
+  const q = new URLSearchParams({
+    shop: shop.id,
+    shopName: shop.name,
+    product: product.value.id,
+    productName: product.value.name,
+  })
+  router.push(`/messages?${q}`)
 }
 
 async function deleteReview(id) {

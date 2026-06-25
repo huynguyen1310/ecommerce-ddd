@@ -21,8 +21,9 @@ class LoginUseCase {
       throw error;
     }
 
-    const token = this.jwtProvider.sign({ id: user.id, email: user.email, role: user.role });
-    return { token, user: { id: user.id, email: user.email, role: user.role } };
+    const shopId = user.shopId || null;
+    const token = this.jwtProvider.sign({ id: user.id, email: user.email, role: user.role, shopId });
+    return { token, user: { id: user.id, email: user.email, role: user.role, shopId } };
   }
 }
 

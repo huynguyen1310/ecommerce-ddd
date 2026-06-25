@@ -140,7 +140,7 @@ sequenceDiagram
 | order-service | order-db (postgres:15) | 3001 |
 | catalog-service | catalog-db (mysql:8) | 8000 |
 | catalog-worker | — | — |
-| identity-service | identity-db (postgres:15) | 3002 |
+| user-service | user-db (postgres:15) | 3002 |
 | payment-service | payment-db (postgres:15) | 3003 |
 | review-service | review-db (postgres:15) | 4000 |
 | shipping-service | shipping-db (postgres:15) | 4001 |

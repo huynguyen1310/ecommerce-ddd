@@ -8,12 +8,21 @@
   <div v-else>
     <NuxtLink to="/" class="text-sm text-indigo-600 hover:underline mb-6 inline-block">&larr; Back to catalog</NuxtLink>
     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 mb-8">
-      <div class="flex items-center gap-6">
-        <div class="w-20 h-20 bg-indigo-100 rounded-2xl flex items-center justify-center text-3xl font-black text-indigo-600">{{ shop.name.charAt(0) }}</div>
-        <div>
-          <h1 class="text-3xl font-black text-gray-900">{{ shop.name }}</h1>
-          <p v-if="shop.description" class="text-gray-500 mt-1">{{ shop.description }}</p>
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-6">
+          <div class="w-20 h-20 bg-indigo-100 rounded-2xl flex items-center justify-center text-3xl font-black text-indigo-600">{{ shop.name.charAt(0) }}</div>
+          <div>
+            <h1 class="text-3xl font-black text-gray-900">{{ shop.name }}</h1>
+            <p v-if="shop.description" class="text-gray-500 mt-1">{{ shop.description }}</p>
+          </div>
         </div>
+        <button
+          v-if="auth.isLoggedIn"
+          @click="openChat"
+          class="px-5 py-2.5 bg-indigo-600 text-white font-bold rounded-xl text-sm hover:bg-indigo-700 transition-colors"
+        >
+          Message Shop
+        </button>
       </div>
     </div>
 
@@ -37,13 +46,22 @@
 </template>
 
 <script setup>
+import { useAuthStore } from '~/stores/auth'
+
+const auth = useAuthStore()
 const route = useRoute()
+const router = useRouter()
 const config = useRuntimeConfig()
 const baseUrl = () => process.server ? config.apiGatewayInternalUrl : config.public.apiGatewayUrl
 
 const shop = ref(null)
 const products = ref([])
 const loading = ref(true)
+
+function openChat() {
+  const q = new URLSearchParams({ shop: route.params.id, shopName: shop.value.name })
+  router.push(`/messages?${q}`)
+}
 
 onMounted(async () => {
   try {
