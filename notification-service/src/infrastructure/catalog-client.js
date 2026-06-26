@@ -8,7 +8,8 @@ class CatalogClient {
     try {
       const response = await fetch(this.baseUrl);
       if (!response.ok) return [];
-      return await response.json();
+      const body = await response.json();
+      return Array.isArray(body) ? body : (body.data || []);
     } catch (error) {
       console.error('[Catalog Client] Failed to fetch products:', error.message);
       return [];

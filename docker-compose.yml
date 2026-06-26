@@ -265,20 +265,36 @@ services:
       - cart-service
       - rustfs
 
-  # Notification Service (Sends Emails)
+  # PostgreSQL for Notification Service (in-app notifications)
+  notification-db:
+    image: postgres:15-alpine
+    container_name: ecom-notification-db
+    environment:
+      POSTGRES_DB: notification_service
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5437:5432"
+
+  # Notification Service (Sends Emails + In-App Notifications)
   notification-service:
     build:
       context: ./notification-service
     container_name: ecom-notification-service
+    ports:
+      - "4002:4002"
     environment:
       RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
       MAIL_HOST: mailhog
       MAIL_PORT: 1025
       CATALOG_SERVICE_URL: http://catalog-service:9000/api/products
+      NOTIFICATION_DB_URL: postgres://user:password@notification-db:5432/notification_service
+      PORT: "4002"
     depends_on:
       - rabbitmq
       - mailhog
       - catalog-service
+      - notification-db
 
   # Redis for Cart Service
   redis:

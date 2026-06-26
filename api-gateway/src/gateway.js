@@ -41,6 +41,9 @@ const publicPaths = [
   ['POST', '/coupons/validate'],
   ['GET', '/shops'],
   ['GET', '/storage'],
+  ['GET', '/notifications'],
+  ['POST', '/notifications'],
+  ['PATCH', '/notifications'],
 ]
 
 const isPublic = (req) => {
@@ -71,6 +74,7 @@ const routeMap = [
   ['/users', 'http://user-service:3002'],
   ['/login', 'http://user-service:3002'],
   ['/register', 'http://user-service:3002'],
+  ['/notifications', 'http://notification-service:4002'],
 ]
 
 const proxyRequest = (target, req, res) => {

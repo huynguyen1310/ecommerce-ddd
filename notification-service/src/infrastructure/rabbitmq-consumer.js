@@ -1,12 +1,13 @@
 const amqp = require('amqplib');
 
 class RabbitMQConsumer {
-  constructor(url, sendOrderEmailUseCase, sendShippedEmailUseCase, sendPaymentEmailUseCase, mailProvider) {
+  constructor(url, sendOrderEmailUseCase, sendShippedEmailUseCase, sendPaymentEmailUseCase, mailProvider, notifRepo) {
     this.url = url;
     this.sendOrderEmailUseCase = sendOrderEmailUseCase;
     this.sendShippedEmailUseCase = sendShippedEmailUseCase;
     this.sendPaymentEmailUseCase = sendPaymentEmailUseCase;
     this.mailProvider = mailProvider;
+    this.notifRepo = notifRepo;
   }
 
   async start() {
@@ -35,6 +36,15 @@ class RabbitMQConsumer {
 
             if (routingKey === 'order.created') {
               console.log(`[RabbitMQ Consumer] Received Order: ${content.data.order_id}`);
+              if (this.notifRepo) {
+                await this.notifRepo.create({
+                  userId: content.data.customer_id,
+                  type: 'order.created',
+                  title: 'Order Confirmed',
+                  body: `Your order #${content.data.order_id.slice(0, 8)} for $${content.data.total} has been placed successfully.`,
+                  link: `/orders/${content.data.order_id}`,
+                });
+              }
               await this.sendOrderEmailUseCase.execute(content.data);
             } else if (routingKey === 'order.shipped') {
               console.log(`[RabbitMQ Consumer] Order Shipped: ${content.data.order_id}`);
@@ -44,6 +54,15 @@ class RabbitMQConsumer {
               await this.sendPaymentEmailUseCase.execute(content.data);
             } else if (routingKey === 'refund.created') {
               console.log(`[RabbitMQ Consumer] Refund requested: ${content.data.return_id}`);
+              if (this.notifRepo) {
+                await this.notifRepo.create({
+                  userId: content.data.buyer_id,
+                  type: 'refund.created',
+                  title: 'Return Request Received',
+                  body: `Your return request for order #${content.data.order_id.slice(0, 8)} has been received.`,
+                  link: `/orders/${content.data.order_id}`,
+                });
+              }
               if (this.mailProvider) {
                 await this.mailProvider.send({
                   to: content.data.buyer_id,

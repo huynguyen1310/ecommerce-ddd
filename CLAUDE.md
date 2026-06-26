@@ -5,7 +5,7 @@
 - **API Gateway:** Express.js (JWT auth, route proxying) :8080
 - **Catalog Service:** Laravel 11 (PHP 8.2, MySQL) :8000
 - **Order Service:** NestJS (TypeORM, PostgreSQL) :3001
-- **Other Services:** User (Express/PG) :3002, Payment (Express/PG) :3003, Cart (Express/Redis) :3004, Review (NestJS/PG) :4000, Shipping (Express/PG) :4001, Notification (Node/RabbitMQ)
+- **Other Services:** User (Express/PG) :3002, Payment (Express/PG) :3003, Cart (Express/Redis) :3004, Review (NestJS/PG) :4000, Shipping (Express/PG) :4001, Notification (Node/RabbitMQ/Express/PG) :4002
 - **Search:** Meilisearch v1.12 :7700
 - **Broker:** RabbitMQ (topic exchange `events`)
 - **Storage:** RustFS (S3-compatible) :9005
@@ -41,6 +41,7 @@
 | `/shipments*` | shipping-service:4001 | Public |
 | `/storage*` | rustfs:9000 | Public |
 | `/api/upload` | catalog-service:9000 | jwt.auth |
+| `/notifications*` | notification-service:4002 | Public |
 
 ### Catalog Service (Laravel)
 
@@ -79,6 +80,13 @@
 
 **Upload:**
 - `POST /api/upload` — multipart file upload, returns `{url, filename}` (jwt.auth)
+
+### Notification (Express/PG on :4002)
+- `GET /notifications?user_id=&page=` — paginated in-app notifications
+- `GET /notifications/unread-count?user_id=` — unread badge count
+- `PATCH /notifications/:id/read` — mark single as read
+- `POST /notifications/read-all` — mark all read (`{user_id}`)
+- Listens on `events` exchange for `order.created`, `refund.created` → creates notification row + sends email
 
 ### Order Service (NestJS)
 - `POST /orders` — create order, publishes `order.created`
@@ -157,6 +165,7 @@
 - `payment_service`: `payments`
 - `shipping_service`: `shipments`
 - `review_service`: `reviews`
+- `notification_service`: `notifications` (id, user_id, type, title, body, link, is_read, created_at)
 
 ### Redis (cart_service)
 - `cart:{userId}` (Hash) — key: `productId[:variantId]`, value: JSON product
@@ -211,11 +220,15 @@
 - `frontend-nuxt/pages/vendor/products/index.vue` — vendor product management
 - `frontend-nuxt/pages/vendor/products/create.vue` — create product with multi-image upload
 - `frontend-nuxt/pages/vendor/products/[id].vue` — edit product, variant CRUD
+- `frontend-nuxt/pages/notifications.vue` — in-app notification list with mark read
+- `notification-service/src/infrastructure/notification-repository.js` — PG repository for notifications
+- `notification-service/index.js` — composition root with Express HTTP server + REST endpoints
 
 ### Stores
 - `stores/auth.ts` — login, register, logout, localStorage persistence
 - `stores/cart.ts` — fetchCart, addToCart (variant support), updateQuantity, checkout
 - `stores/notifications.ts` — toast queue with auto-dismiss
+- `stores/notification.ts` — in-app notification fetch, mark read, unread count polling
 - `stores/wishlist.ts` — localStorage-backed, max 12 items
 - `stores/recentlyViewed.ts` — localStorage-backed, max 12 items
 
@@ -226,7 +239,19 @@
 - **Upload:** `POST /api/upload` accepts multipart `file`. Use native `fetch()` for FormData (Nuxt `$fetch` mishandles multipart). Requires JWT auth header forwarded through gateway.
 - **Bootstrap cache:** If `CollisionServiceProvider` errors at boot, delete `bootstrap/cache/packages.php` and `services.php` (stale dev cache).
 
-## What Was Recently Done (Phase 9 — Search & Discovery)
+## What Was Recently Done (Phase 10 — In-App Notifications)
+
+### Backend
+- PostgreSQL container (`notification-db`) added to docker-compose on :5437
+- `NotificationRepository` with auto-migrate, CRUD, unread count, mark-read
+- Express HTTP server in `notification-service/index.js` with 4 REST endpoints
+- RabbitMQ consumer expanded to create in-app notification records for `order.created` (via `customer_id`) and `refund.created` (via `buyer_id`)
+- Gateway routes added for `/notifications*` → notification-service:4002
+
+### Frontend
+- `stores/notification.ts` — Pinia store with fetch, unread polling, mark-read
+- Bell icon in nav (SVG logged-in only) with unread badge, polls every 10s
+- `/notifications` page with unread/read styling, "Mark all as read", deep-link navigation
 
 ### Backend
 - Expanded Meilisearch index with `shop_name, in_stock, stock, shop_id, created_at` fields

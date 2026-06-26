@@ -1,10 +1,10 @@
 <template>
   <div class="min-h-screen flex flex-col bg-gray-50">
     <header class="bg-white shadow-sm border-b sticky top-0 z-50">
-      <nav class="container mx-auto px-4 h-16 flex items-center gap-4">
-        <NuxtLink to="/" class="text-2xl font-bold text-indigo-600 tracking-tight shrink-0">E-Shop</NuxtLink>
+      <nav class="container mx-auto px-4 h-14 flex items-center gap-1.5">
+        <NuxtLink to="/" class="text-xl font-bold text-indigo-600 tracking-tight shrink-0">E-Shop</NuxtLink>
 
-        <div class="relative flex-1 max-w-md">
+        <div class="relative flex-1 max-w-sm min-w-0">
           <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M11 19a8 8 0 100-16 8 8 0 000 16z"/></svg>
           <input
             v-model="searchQuery"
@@ -38,36 +38,39 @@
           </div>
         </div>
 
-        <div class="flex items-center space-x-6">
-          <NuxtLink to="/" class="text-gray-600 hover:text-indigo-600 transition-colors font-medium">Home</NuxtLink>
-          <NuxtLink v-if="auth.isLoggedIn" to="/orders" class="text-gray-600 hover:text-indigo-600 transition-colors font-medium">My Orders</NuxtLink>
-          <NuxtLink to="/wishlist" class="text-gray-600 hover:text-indigo-600 transition-colors font-medium flex items-center">
+        <div class="flex items-center gap-1.5 text-sm">
+          <NuxtLink v-if="auth.isLoggedIn" to="/orders" class="text-gray-600 hover:text-indigo-600 transition-colors font-medium px-2 py-1.5 shrink-0">My Orders</NuxtLink>
+          <NuxtLink to="/wishlist" class="text-gray-600 hover:text-indigo-600 transition-colors font-medium flex items-center px-2 py-1.5 shrink-0">
             Wishlist
-            <span v-if="wishlist.count > 0" class="ml-1 px-2 py-0.5 text-xs bg-rose-500 text-white rounded-full">{{ wishlist.count }}</span>
+            <span v-if="wishlist.count > 0" class="ml-1 px-1.5 py-0.5 text-xs bg-rose-500 text-white rounded-full">{{ wishlist.count }}</span>
           </NuxtLink>
-          <NuxtLink v-if="auth.isLoggedIn" to="/messages" class="text-gray-600 hover:text-indigo-600 transition-colors font-medium flex items-center">
+          <NuxtLink v-if="auth.isLoggedIn" to="/messages" class="text-gray-600 hover:text-indigo-600 transition-colors font-medium flex items-center px-2 py-1.5 shrink-0">
             Messages
-            <span v-if="unreadCount > 0" class="ml-1.5 px-1.5 py-0.5 text-xs bg-rose-500 text-white rounded-full">{{ unreadCount > 99 ? '99+' : unreadCount }}</span>
+            <span v-if="chatUnread > 0" class="ml-1 px-1.5 py-0.5 text-xs bg-rose-500 text-white rounded-full">{{ chatUnread > 99 ? '99+' : chatUnread }}</span>
           </NuxtLink>
-          <NuxtLink to="/cart" class="text-gray-600 hover:text-indigo-600 transition-colors font-medium flex items-center">
-            Cart
-            <span v-if="cartCount > 0" class="ml-1 px-2 py-0.5 text-xs bg-indigo-600 text-white rounded-full">{{ cartCount }}</span>
+          <NuxtLink v-if="auth.isLoggedIn" to="/notifications" class="text-gray-600 hover:text-indigo-600 transition-colors font-medium flex items-center px-1.5 py-1.5 shrink-0 relative">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+            <span v-if="notifUnread > 0" class="absolute -top-0.5 -right-0.5 px-1 py-0.5 text-[10px] bg-rose-500 text-white rounded-full min-w-[16px] text-center leading-none">{{ notifUnread > 99 ? '99+' : notifUnread }}</span>
           </NuxtLink>
-          <div v-if="auth.isLoggedIn" class="relative border-l pl-4 profile-menu">
-            <button @click="showMenu = !showMenu" class="flex items-center gap-1.5 text-sm font-bold text-gray-900 hover:text-indigo-600 transition-colors">
-              {{ auth.user?.email }}
-              <svg class="w-3.5 h-3.5 transition-transform" :class="showMenu && 'rotate-180'" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+          <NuxtLink to="/cart" class="text-gray-600 hover:text-indigo-600 transition-colors font-medium flex items-center px-1.5 py-1.5 shrink-0 relative">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 100 4 2 2 0 000-4z"/></svg>
+            <span v-if="cartCount > 0" class="absolute -top-0.5 -right-0.5 px-1 py-0.5 text-[10px] bg-indigo-600 text-white rounded-full min-w-[16px] text-center leading-none">{{ cartCount > 99 ? '99+' : cartCount }}</span>
+          </NuxtLink>
+          <div v-if="auth.isLoggedIn" class="relative border-l pl-1.5 ml-1 profile-menu shrink-0">
+            <button @click="showMenu = !showMenu" class="flex items-center gap-1 text-sm font-bold text-gray-900 hover:text-indigo-600 transition-colors px-1.5 py-1.5">
+              <span class="hidden sm:inline max-w-[100px] truncate">{{ auth.user?.email }}</span>
+              <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
             </button>
-            <div v-if="showMenu" class="absolute right-0 top-full mt-2 w-56 bg-white rounded-xl border border-gray-100 shadow-lg z-50 py-1.5 overflow-hidden">
-              <NuxtLink to="/profile" @click="showMenu = false" class="block px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors">Profile</NuxtLink>
-              <NuxtLink v-if="auth.isVendor" to="/vendor/dashboard" @click="showMenu = false" class="block px-4 py-2.5 text-sm text-indigo-600 font-bold hover:bg-indigo-50 transition-colors">🏪 My Shop</NuxtLink>
-              <NuxtLink v-else-if="!auth.isAdmin" to="/vendor/create" @click="showMenu = false" class="block px-4 py-2.5 text-sm text-indigo-600 font-bold hover:bg-indigo-50 transition-colors">🏪 Become a Vendor</NuxtLink>
-              <NuxtLink v-if="auth.isAdmin" to="/admin" @click="showMenu = false" class="block px-4 py-2.5 text-sm text-amber-600 font-bold hover:bg-amber-50 transition-colors">⚡ Admin Dashboard</NuxtLink>
-              <hr class="my-1.5 border-gray-100" />
-              <button @click="handleLogout" class="block w-full text-left px-4 py-2.5 text-sm text-rose-600 font-bold hover:bg-rose-50 transition-colors">Logout</button>
+            <div v-if="showMenu" class="absolute right-0 top-full mt-2 w-48 bg-white rounded-xl border border-gray-100 shadow-lg z-50 py-1.5 overflow-hidden">
+              <NuxtLink to="/profile" @click="showMenu = false" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors">Profile</NuxtLink>
+              <NuxtLink v-if="auth.isVendor" to="/vendor/dashboard" @click="showMenu = false" class="block px-4 py-2 text-sm text-indigo-600 font-bold hover:bg-indigo-50 transition-colors">My Shop</NuxtLink>
+              <NuxtLink v-else-if="!auth.isAdmin" to="/vendor/create" @click="showMenu = false" class="block px-4 py-2 text-sm text-indigo-600 font-bold hover:bg-indigo-50 transition-colors">Become a Vendor</NuxtLink>
+              <NuxtLink v-if="auth.isAdmin" to="/admin" @click="showMenu = false" class="block px-4 py-2 text-sm text-amber-600 font-bold hover:bg-amber-50 transition-colors">Admin</NuxtLink>
+              <hr class="my-1 border-gray-100" />
+              <button @click="handleLogout" class="block w-full text-left px-4 py-2 text-sm text-rose-600 font-bold hover:bg-rose-50 transition-colors">Logout</button>
             </div>
           </div>
-          <NuxtLink v-else to="/login" class="px-4 py-2 rounded-lg border border-indigo-600 text-indigo-600 hover:bg-indigo-50 transition-colors font-medium">Login</NuxtLink>
+          <NuxtLink v-else to="/login" class="px-3 py-1.5 rounded-lg border border-indigo-600 text-indigo-600 hover:bg-indigo-50 transition-colors font-medium shrink-0 text-sm">Login</NuxtLink>
         </div>
       </nav>
     </header>
@@ -90,17 +93,20 @@
 import { useCartStore } from '~/stores/cart'
 import { useWishlistStore } from '~/stores/wishlist'
 import { useAuthStore } from '~/stores/auth'
+import { useAppNotificationStore } from '~/stores/notification'
 
 const cartStore = useCartStore()
 const wishlist = useWishlistStore()
 const auth = useAuthStore()
+const appNotif = useAppNotificationStore()
 const router = useRouter()
 const config = useRuntimeConfig()
 const showMenu = ref(false)
-const unreadCount = ref(0)
+const chatUnread = ref(0)
 let unreadTimer = null
 
 const cartCount = computed(() => cartStore.items.reduce((sum, item) => sum + item.quantity, 0))
+const notifUnread = computed(() => appNotif.unreadCount)
 const apiBaseUrl = process.server ? config.apiGatewayInternalUrl : config.public.apiGatewayUrl
 
 // Search
@@ -137,7 +143,7 @@ const fetchUnread = async () => {
   try {
     const apiBaseUrl = process.server ? config.apiGatewayInternalUrl : config.public.apiGatewayUrl
     const { count } = await $fetch(`${apiBaseUrl}/chat/unread-count`, { headers: auth.token ? { Authorization: `Bearer ${auth.token}` } : {} })
-    unreadCount.value = count
+    chatUnread.value = count
   } catch {}
 }
 
@@ -151,7 +157,11 @@ onMounted(() => {
   cartStore.fetchCart()
   document.addEventListener('click', handleClickOutside)
   fetchUnread()
-  unreadTimer = setInterval(fetchUnread, 10000)
+  appNotif.fetchUnreadCount()
+  unreadTimer = setInterval(() => {
+    fetchUnread()
+    appNotif.fetchUnreadCount()
+  }, 10000)
 })
 
 onUnmounted(() => {
