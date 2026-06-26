@@ -10,7 +10,8 @@ describe('CreateOrderUseCase', () => {
     mockRepo = { save: jest.fn(), findById: jest.fn(), findByCustomerId: jest.fn(), findAll: jest.fn(), findByShopId: jest.fn() };
     mockPublisher = { publishOrderCreated: jest.fn() };
     const mockCouponRepo = { findOneBy: jest.fn(), update: jest.fn() };
-    useCase = new CreateOrderUseCase(mockRepo, mockPublisher, mockCouponRepo as any);
+    const mockSubOrderRepo = { create: jest.fn(), save: jest.fn() };
+    useCase = new CreateOrderUseCase(mockRepo, mockPublisher, mockCouponRepo as any, mockSubOrderRepo as any);
   });
 
   it('creates order with valid input', async () => {

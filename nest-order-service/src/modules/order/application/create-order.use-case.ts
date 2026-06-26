@@ -5,6 +5,7 @@ import { IOrderRepository } from '../domain/order.repository.interface';
 import { Order, ShippingAddress } from '../domain/order.entity';
 import { RabbitMqOrderPublisher } from '../infrastructure/messaging/rabbitmq-order-publisher';
 import { CouponOrmEntity } from '../../coupon/infrastructure/persistence/coupon.orm-entity';
+import { SubOrderOrmEntity } from '../infrastructure/persistence/sub-order.orm-entity';
 import * as crypto from 'crypto';
 
 @Injectable()
@@ -15,9 +16,11 @@ export class CreateOrderUseCase {
     private readonly messagePublisher: RabbitMqOrderPublisher,
     @InjectRepository(CouponOrmEntity)
     private readonly couponRepo: Repository<CouponOrmEntity>,
+    @InjectRepository(SubOrderOrmEntity)
+    private readonly subOrderRepo: Repository<SubOrderOrmEntity>,
   ) {}
 
-  async execute(input: { customerId: string; customerEmail?: string; items: Array<{ productId: string; quantity: number; price: number }>; shippingAddress?: ShippingAddress; couponCode?: string }) {
+  async execute(input: { customerId: string; customerEmail?: string; items: Array<{ productId: string; quantity: number; price: number; shopId?: string }>; shippingAddress?: ShippingAddress; couponCode?: string }) {
     const id = crypto.randomUUID();
     let discount: number | undefined;
     let couponCode: string | undefined;
@@ -31,6 +34,25 @@ export class CreateOrderUseCase {
 
     const order = Order.create(id, input.customerId, input.items, input.shippingAddress, couponCode, discount);
     await this.orderRepository.save(order);
+
+    const shops = new Map<string, Array<{ productId: string; quantity: number; price: number }>>();
+    for (const item of input.items) {
+      const sid = item.shopId || 'unknown';
+      if (!shops.has(sid)) shops.set(sid, []);
+      shops.get(sid)!.push({ productId: item.productId, quantity: item.quantity, price: item.price });
+    }
+
+    for (const [shopId, shopItems] of shops) {
+      const total = shopItems.reduce((s, i) => s + i.price * i.quantity, 0);
+      await this.subOrderRepo.save(this.subOrderRepo.create({
+        id: crypto.randomUUID(),
+        orderId: id,
+        shopId,
+        status: 'PENDING',
+        total,
+        items: shopItems,
+      }));
+    }
 
     await this.messagePublisher.publishOrderCreated(order, input.customerEmail);
 

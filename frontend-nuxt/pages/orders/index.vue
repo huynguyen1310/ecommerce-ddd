@@ -123,8 +123,11 @@ const fetchTracking = async (orderList) => {
 const getStatusIcon = (status) => {
   switch (status) {
     case 'PENDING': return '⏳'
-    case 'PAID': return '✅'
+    case 'CONFIRMED': return '✅'
+    case 'PROCESSING': return '🔧'
     case 'SHIPPED': return '📦'
+    case 'DELIVERED': return '📬'
+    case 'COMPLETED': return '🎉'
     case 'CANCELLED': return '❌'
     case 'REFUNDED': return '💰'
     default: return '📄'
@@ -134,8 +137,11 @@ const getStatusIcon = (status) => {
 const getStatusBg = (status) => {
   switch (status) {
     case 'PENDING': return 'bg-amber-50'
-    case 'PAID': return 'bg-green-50'
-    case 'SHIPPED': return 'bg-blue-50'
+    case 'CONFIRMED': return 'bg-green-50'
+    case 'PROCESSING': return 'bg-blue-50'
+    case 'SHIPPED': return 'bg-indigo-50'
+    case 'DELIVERED': return 'bg-teal-50'
+    case 'COMPLETED': return 'bg-emerald-50'
     case 'CANCELLED': return 'bg-rose-50'
     case 'REFUNDED': return 'bg-purple-50'
     default: return 'bg-gray-50'
@@ -145,8 +151,11 @@ const getStatusBg = (status) => {
 const getStatusBadgeClass = (status) => {
   switch (status) {
     case 'PENDING': return 'bg-amber-100 text-amber-700'
-    case 'PAID': return 'bg-green-100 text-green-700'
-    case 'SHIPPED': return 'bg-blue-100 text-blue-700'
+    case 'CONFIRMED': return 'bg-green-100 text-green-700'
+    case 'PROCESSING': return 'bg-blue-100 text-blue-700'
+    case 'SHIPPED': return 'bg-indigo-100 text-indigo-700'
+    case 'DELIVERED': return 'bg-teal-100 text-teal-700'
+    case 'COMPLETED': return 'bg-emerald-100 text-emerald-700'
     case 'CANCELLED': return 'bg-rose-100 text-rose-700'
     case 'REFUNDED': return 'bg-purple-100 text-purple-700'
     default: return 'bg-gray-100 text-gray-700'

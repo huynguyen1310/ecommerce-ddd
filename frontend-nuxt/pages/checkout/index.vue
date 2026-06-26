@@ -48,17 +48,20 @@
       <div class="lg:col-span-2">
         <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 sticky top-24">
           <h2 class="text-lg font-bold text-gray-900 mb-6">Order Summary</h2>
-          <div class="space-y-4 mb-6">
-            <div v-for="item in checkoutItems" :key="item.productId" class="flex items-center gap-3">
-              <div class="w-12 h-12 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
-                <img v-if="item.imageUrl" :src="item.imageUrl" :alt="item.name" class="w-full h-full object-cover" />
-                <span v-else class="flex items-center justify-center h-full text-lg">📦</span>
+          <div class="space-y-6 mb-6">
+            <div v-for="(group, shopKey) in groupedItems" :key="shopKey">
+              <p class="text-xs font-bold text-gray-400 uppercase mb-2">{{ group.shopName }}</p>
+              <div v-for="item in group.items" :key="item.productId" class="flex items-center gap-3 mb-3">
+                <div class="w-12 h-12 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
+                  <img v-if="item.imageUrl" :src="item.imageUrl" :alt="item.name" class="w-full h-full object-cover" />
+                  <span v-else class="flex items-center justify-center h-full text-lg">📦</span>
+                </div>
+                <div class="flex-1 min-w-0">
+                  <p class="text-sm font-bold text-gray-900 truncate">{{ item.name }}</p>
+                  <p class="text-xs text-gray-400">Qty: {{ item.quantity }}</p>
+                </div>
+                <p class="text-sm font-bold text-gray-900">${{ (item.price * item.quantity).toFixed(2) }}</p>
               </div>
-              <div class="flex-1 min-w-0">
-                <p class="text-sm font-bold text-gray-900 truncate">{{ item.name }}</p>
-                <p class="text-xs text-gray-400">Qty: {{ item.quantity }}</p>
-              </div>
-              <p class="text-sm font-bold text-gray-900">${{ (item.price * item.quantity).toFixed(2) }}</p>
             </div>
           </div>
 
@@ -106,6 +109,16 @@ const checkoutItems = computed(() => cart.items.filter(i => selectedIds.value.ha
 
 const address = ref({ name: '', street: '', city: '', state: '', zip: '', country: 'US' })
 const submitting = ref(false)
+const groupedItems = computed(() => {
+  const groups = {}
+  for (const item of checkoutItems.value) {
+    const key = item.shopId || '__noshop__'
+    if (!groups[key]) groups[key] = { shopName: item.shopName || 'Other', items: [] }
+    groups[key].items.push(item)
+  }
+  return groups
+})
+
 const subtotal = computed(() => checkoutItems.value.reduce((s, i) => s + i.price * i.quantity, 0))
 const couponInput = ref('')
 const couponLoading = ref(false)

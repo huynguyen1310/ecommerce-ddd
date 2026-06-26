@@ -90,4 +90,15 @@ export class RabbitMqOrderPublisher implements OnModuleInit {
     this.channel.publish(this.exchange, 'refund.completed', Buffer.from(JSON.stringify(payload)), { persistent: true });
     console.log('[RabbitMQ] Published event: refund.completed');
   }
+
+  async publishStatusChanged(orderId: string, from: string, to: string): Promise<void> {
+    if (!this.channel) return;
+    const payload = {
+      event_id: crypto.randomUUID(),
+      occurred_at: new Date().toISOString(),
+      data: { order_id: orderId, from, to },
+    };
+    this.channel.publish(this.exchange, 'order.status.changed', Buffer.from(JSON.stringify(payload)), { persistent: true });
+    console.log('[RabbitMQ] Published event: order.status.changed');
+  }
 }

@@ -21,6 +21,7 @@ coverage/
 .next/
 .nuxt/
 .nuxt/**/*
+.output
 *.tsbuildinfo
 
 # Environment files (keep .env.example)

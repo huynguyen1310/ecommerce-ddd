@@ -1,6 +1,9 @@
 import { Injectable, OnModuleInit, Inject } from '@nestjs/common';
 import { connect, Connection, Channel } from 'amqplib';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { IOrderRepository } from '../../domain/order.repository.interface';
+import { SubOrderOrmEntity } from '../persistence/sub-order.orm-entity';
 
 @Injectable()
 export class RabbitMqOrderConsumer implements OnModuleInit {
@@ -12,6 +15,8 @@ export class RabbitMqOrderConsumer implements OnModuleInit {
   constructor(
     @Inject('IOrderRepository')
     private readonly orderRepository: IOrderRepository,
+    @InjectRepository(SubOrderOrmEntity)
+    private readonly subOrderRepo: Repository<SubOrderOrmEntity>,
   ) {}
 
   async onModuleInit() {
@@ -27,7 +32,6 @@ export class RabbitMqOrderConsumer implements OnModuleInit {
       await this.channel.assertExchange(this.exchange, 'topic', { durable: true });
       await this.channel.assertQueue(this.queue, { durable: true });
       
-      // Bind to all relevant events for order state management
       await this.channel.bindQueue(this.queue, this.exchange, 'inventory.deducted');
       await this.channel.bindQueue(this.queue, this.exchange, 'inventory.insufficient');
       await this.channel.bindQueue(this.queue, this.exchange, 'payment.completed');
@@ -67,7 +71,6 @@ export class RabbitMqOrderConsumer implements OnModuleInit {
 
     switch (routingKey) {
       case 'inventory.deducted':
-        // Optional: set to 'AWAITING_PAYMENT' or keep as 'PENDING'
         console.log(`[RabbitMQ Consumer] Inventory secured. Awaiting payment...`);
         break;
       
@@ -77,18 +80,19 @@ export class RabbitMqOrderConsumer implements OnModuleInit {
         break;
 
       case 'payment.completed':
-        console.log(`[RabbitMQ Consumer] Payment successful! Shipping order...`);
-        order.status = 'PAID';
-        // In a real app, maybe SHIPPED comes after a warehouse event
+        console.log(`[RabbitMQ Consumer] Payment successful! Confirming order...`);
+        order.status = 'CONFIRMED';
+        await this.subOrderRepo.update({ orderId: order_id }, { status: 'CONFIRMED' });
         break;
 
       case 'payment.failed':
-        console.log(`[RabbitMQ Consumer] Payment failed. Reason: ${payload.data.reason}. Cancelling...`);
+        console.log(`[RabbitMQ Consumer] Payment failed. Cancelling...`);
         order.status = 'CANCELLED';
+        await this.subOrderRepo.update({ orderId: order_id }, { status: 'CANCELLED' });
         break;
 
       case 'order.shipped':
-        console.log(`[RabbitMQ Consumer] Order shipped! Tracking: ${payload.data.tracking_number}`);
+        console.log(`[RabbitMQ Consumer] Order shipped!`);
         order.status = 'SHIPPED';
         break;
     }

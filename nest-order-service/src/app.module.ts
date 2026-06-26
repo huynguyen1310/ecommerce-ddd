@@ -4,6 +4,7 @@ import { OrderModule } from './modules/order/order.module';
 import { CouponModule } from './modules/coupon/coupon.module';
 import { OrderOrmEntity } from './modules/order/infrastructure/persistence/order.orm-entity';
 import { ReturnRequestOrmEntity } from './modules/order/infrastructure/persistence/return-request.orm-entity';
+import { SubOrderOrmEntity } from './modules/order/infrastructure/persistence/sub-order.orm-entity';
 import { CouponOrmEntity } from './modules/coupon/infrastructure/persistence/coupon.orm-entity';
 
 @Module({
@@ -15,7 +16,7 @@ import { CouponOrmEntity } from './modules/coupon/infrastructure/persistence/cou
       username: process.env.DB_USER || 'user',
       password: process.env.DB_PASS || 'password',
       database: process.env.DB_NAME || 'order_service',
-      entities: [OrderOrmEntity, ReturnRequestOrmEntity, CouponOrmEntity],
+      entities: [OrderOrmEntity, ReturnRequestOrmEntity, SubOrderOrmEntity, CouponOrmEntity],
       synchronize: true, // Note: Use migrations in production
     }),
     OrderModule,

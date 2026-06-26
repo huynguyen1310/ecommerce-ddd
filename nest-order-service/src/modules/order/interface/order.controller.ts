@@ -3,9 +3,11 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { CreateOrderUseCase } from '../application/create-order.use-case';
 import { IOrderRepository } from '../domain/order.repository.interface';
-import { ShippingAddress, OrderItem } from '../domain/order.entity';
+import { Order, ShippingAddress, OrderItem, canTransition } from '../domain/order.entity';
 import { ReturnRequestOrmEntity } from '../infrastructure/persistence/return-request.orm-entity';
+import { SubOrderOrmEntity } from '../infrastructure/persistence/sub-order.orm-entity';
 import { RabbitMqOrderPublisher } from '../infrastructure/messaging/rabbitmq-order-publisher';
+import { OrderScheduler } from '../infrastructure/order-scheduler';
 import * as crypto from 'crypto';
 
 @Controller('orders')
@@ -16,7 +18,10 @@ export class OrderController {
     private readonly orderRepository: IOrderRepository,
     @InjectRepository(ReturnRequestOrmEntity)
     private readonly returnRepo: Repository<ReturnRequestOrmEntity>,
+    @InjectRepository(SubOrderOrmEntity)
+    private readonly subOrderRepo: Repository<SubOrderOrmEntity>,
     private readonly publisher: RabbitMqOrderPublisher,
+    private readonly scheduler: OrderScheduler,
   ) {}
 
   @Post()
@@ -24,14 +29,21 @@ export class OrderController {
     return await this.createOrderUseCase.execute(body);
   }
 
-  private formatOrder(order: any) {
+  private async formatOrder(order: Order) {
+    const subOrders = await this.subOrderRepo.find({ where: { orderId: order.id } });
+    const parentStatus = order.status;
     return {
       id: order.id, customerId: order.customerId, total: order.total,
-      status: order.status,
+      status: parentStatus,
       shippingAddress: order.shippingAddress,
       couponCode: order.couponCode,
       discount: order.discount ? Number(order.discount) : undefined,
       items: order.items.map(i => ({ productId: i.productId, quantity: i.quantity, price: i.price, shopId: i.shopId })),
+      subOrders: subOrders.map(s => ({
+        id: s.id, shopId: s.shopId, status: s.status, total: Number(s.total),
+        items: s.items, trackingNumber: s.trackingNumber, carrier: s.carrier,
+        shippedAt: s.shippedAt, deliveredAt: s.deliveredAt,
+      })),
       createdAt: order.createdAt,
     };
   }
@@ -39,23 +51,87 @@ export class OrderController {
   @Get()
   async findAll() {
     const orders = await this.orderRepository.findAll();
-    return orders.map(this.formatOrder);
+    return Promise.all(orders.map(o => this.formatOrder(o)));
   }
 
   @Get('vendor/:shopId')
   async findByShop(@Param('shopId') shopId: string) {
-    const orders = await this.orderRepository.findByShopId(shopId);
-    return orders.map(this.formatOrder);
+    const subOrders = await this.subOrderRepo.find({
+      where: { shopId },
+      order: { createdAt: 'DESC' },
+    });
+    return Promise.all(subOrders.map(async s => {
+      const order = await this.orderRepository.findById(s.orderId);
+      return { ...s, customerEmail: order?.customerId };
+    }));
+  }
+
+  @Get('vendor/:shopId/sub-orders')
+  async vendorSubOrders(@Param('shopId') shopId: string) {
+    return this.subOrderRepo.find({
+      where: { shopId },
+      order: { createdAt: 'DESC' },
+    });
+  }
+
+  @Patch(':id/sub-orders/:subId/ship')
+  async shipSubOrder(@Param('id') id: string, @Param('subId') subId: string, @Body() body: { trackingNumber?: string; carrier?: string }) {
+    const sub = await this.subOrderRepo.findOne({ where: { id: subId, orderId: id } });
+    if (!sub) throw new NotFoundException('Sub-order not found');
+    if (sub.status !== 'PROCESSING' && sub.status !== 'CONFIRMED') throw new BadRequestException('Sub-order must be confirmed/processing before shipping');
+    sub.status = 'SHIPPED';
+    sub.trackingNumber = body.trackingNumber;
+    sub.carrier = body.carrier;
+    sub.shippedAt = new Date();
+    await this.subOrderRepo.save(sub);
+    return sub;
+  }
+
+  @Patch(':id/status')
+  async transitionStatus(@Param('id') id: string, @Body() body: { status: string }) {
+    const order = await this.orderRepository.findById(id);
+    if (!order) throw new NotFoundException('Order not found');
+    if (!canTransition(order.status, body.status as any)) {
+      throw new BadRequestException(`Cannot transition from ${order.status} to ${body.status}`);
+    }
+    order.status = body.status as any;
+    await this.orderRepository.save(order);
+    await this.publisher.publishStatusChanged(id, order.status, body.status);
+    return this.formatOrder(order);
+  }
+
+  @Patch(':id/confirm-delivery')
+  async confirmDelivery(@Param('id') id: string) {
+    const order = await this.orderRepository.findById(id);
+    if (!order) throw new NotFoundException('Order not found');
+
+    const subs = await this.subOrderRepo.find({ where: { orderId: id } });
+    const hasShipped = subs.some(s => s.status === 'SHIPPED');
+    if (!hasShipped) throw new BadRequestException('No shipped sub-orders to confirm');
+
+    if (canTransition(order.status, 'DELIVERED')) {
+      order.status = 'DELIVERED';
+      await this.orderRepository.save(order);
+    }
+
+    for (const sub of subs) {
+      if (sub.status === 'SHIPPED') {
+        sub.status = 'DELIVERED';
+        sub.deliveredAt = new Date();
+        await this.subOrderRepo.save(sub);
+      }
+    }
+    return this.formatOrder(order);
   }
 
   @Patch(':id/ship')
   async markShipped(@Param('id') id: string) {
     const order = await this.orderRepository.findById(id);
     if (!order) throw new NotFoundException('Order not found');
-    if (order.status !== 'PAID') throw new BadRequestException('Order must be PAID before shipping');
+    if (order.status !== 'PROCESSING' && order.status !== 'CONFIRMED') throw new BadRequestException('Order must be CONFIRMED or PROCESSING before shipping');
     order.status = 'SHIPPED';
     await this.orderRepository.save(order);
-    return { message: 'Order marked as shipped' };
+    return this.formatOrder(order);
   }
 
   @Get(':id')
@@ -68,7 +144,7 @@ export class OrderController {
   @Get('customer/:customerId')
   async findByCustomer(@Param('customerId') customerId: string) {
     const orders = await this.orderRepository.findByCustomerId(customerId);
-    return orders.map(this.formatOrder);
+    return Promise.all(orders.map(o => this.formatOrder(o)));
   }
 
   @Get(':id/return')
@@ -82,7 +158,7 @@ export class OrderController {
   async requestReturn(@Param('id') id: string, @Body() body: { reason: string; buyerId: string }) {
     const order = await this.orderRepository.findById(id);
     if (!order) throw new NotFoundException('Order not found');
-    if (order.status !== 'PAID' && order.status !== 'SHIPPED') throw new BadRequestException('Can only return paid or shipped orders');
+    if (order.status !== 'SHIPPED' && order.status !== 'DELIVERED' && order.status !== 'CONFIRMED' && order.status !== 'PROCESSING') throw new BadRequestException('Order not eligible for return');
     const existing = await this.returnRepo.findOne({ where: { orderId: id } });
     if (existing) throw new BadRequestException('Return already requested for this order');
 
@@ -124,6 +200,18 @@ export class OrderController {
   @Get('admin/returns')
   async adminListReturns() {
     return this.returnRepo.find({ order: { createdAt: 'DESC' } });
+  }
+
+  @Post('admin/auto-deliver')
+  async autoDeliver() {
+    const affected = await this.scheduler.autoDeliver();
+    return { affected, message: `Auto-delivered ${affected} sub-orders` };
+  }
+
+  @Post('admin/auto-complete')
+  async autoComplete() {
+    const affected = await this.scheduler.autoComplete();
+    return { affected, message: `Auto-completed ${affected} sub-orders` };
   }
 
   @Post('admin/returns/:id/force-refund')

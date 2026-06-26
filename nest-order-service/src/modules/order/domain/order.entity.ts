@@ -9,12 +9,29 @@ export interface ShippingAddress {
 
 export type OrderItem = { productId: string; quantity: number; price: number; shopId?: string };
 
+export type OrderStatus = 'PENDING' | 'CONFIRMED' | 'PROCESSING' | 'SHIPPED' | 'DELIVERED' | 'COMPLETED' | 'CANCELLED' | 'REFUNDED';
+
+export const VALID_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
+  PENDING: ['CONFIRMED', 'CANCELLED'],
+  CONFIRMED: ['PROCESSING', 'CANCELLED', 'REFUNDED'],
+  PROCESSING: ['SHIPPED', 'CANCELLED'],
+  SHIPPED: ['DELIVERED', 'REFUNDED'],
+  DELIVERED: ['COMPLETED', 'REFUNDED'],
+  COMPLETED: ['REFUNDED'],
+  CANCELLED: [],
+  REFUNDED: [],
+};
+
+export function canTransition(from: OrderStatus, to: OrderStatus): boolean {
+  return VALID_TRANSITIONS[from]?.includes(to) ?? false;
+}
+
 export class Order {
   constructor(
     public readonly id: string,
     public readonly customerId: string,
     public readonly items: OrderItem[],
-    public status: 'PENDING' | 'PAID' | 'SHIPPED' | 'CANCELLED' | 'REFUNDED',
+    public status: OrderStatus,
     public readonly total: number,
     public readonly createdAt: Date,
     public readonly shippingAddress?: ShippingAddress,

@@ -43,13 +43,25 @@
       </div>
     </div>
 
-    <div v-if="order.status === 'SHIPPED' && tracking" class="bg-blue-50 border border-blue-200 rounded-2xl p-6 mb-6">
+    <div v-if="anyShipped" class="bg-blue-50 border border-blue-200 rounded-2xl p-6 mb-6">
       <div class="flex items-center gap-4">
         <span class="text-3xl">📦</span>
         <div>
-          <h3 class="font-bold text-blue-900">Shipped via {{ tracking.carrier }}</h3>
-          <p class="text-blue-700 font-mono text-sm mt-0.5">{{ tracking.tracking_number }}</p>
+          <h3 class="font-bold text-blue-900">Order Shipped</h3>
+          <p class="text-blue-700 text-sm mt-0.5">You can confirm delivery once it arrives.</p>
         </div>
+      </div>
+      <button @click="confirmDelivery" class="mt-4 px-6 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-colors">
+        Confirm Delivery
+      </button>
+    </div>
+
+    <div v-if="order.status === 'PENDING' || order.status === 'CONFIRMED' || order.status === 'PROCESSING'" class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-6">
+      <h2 class="text-lg font-black text-gray-900 mb-4">Actions</h2>
+      <div class="flex gap-3">
+        <button @click="cancelOrder" class="px-6 py-3 bg-rose-600 text-white font-bold rounded-xl hover:bg-rose-700 transition-colors">
+          Cancel Order
+        </button>
       </div>
     </div>
 
@@ -85,16 +97,27 @@
       <div class="p-6 border-b border-gray-100">
         <h2 class="text-lg font-black text-gray-900">Items ({{ order.items.length }})</h2>
       </div>
-      <div v-for="item in order.items" :key="item.productId" class="px-6 py-4 border-b border-gray-50 last:border-b-0 flex items-center justify-between">
-        <div class="flex items-center gap-3">
-          <span class="text-sm font-mono text-gray-400 bg-gray-100 px-2 py-1 rounded">{{ item.quantity }}x</span>
-          <div>
-            <p class="font-medium text-gray-900">Product {{ item.productId.substring(0, 8) }}</p>
-            <p class="text-xs text-gray-400 font-mono">{{ item.productId }}</p>
+
+      <div v-for="(sub, si) in order.subOrders" :key="sub.id" class="border-b border-gray-100 last:border-b-0">
+        <div class="px-6 py-3 bg-gray-50 flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span class="font-bold text-gray-700">{{ sub.shopId }}</span>
+            <span :class="getStatusBadgeClass(sub.status)" class="px-2 py-0.5 rounded-full text-xs font-bold uppercase">{{ sub.status }}</span>
           </div>
+          <p class="font-bold text-indigo-600">${{ Number(sub.total).toFixed(2) }}</p>
         </div>
-        <p class="text-lg font-black text-gray-900">${{ (item.price * item.quantity).toFixed(2) }}</p>
+        <div v-for="item in sub.items" :key="item.productId" class="px-6 py-4 flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <span class="text-sm font-mono text-gray-400 bg-gray-100 px-2 py-1 rounded">{{ item.quantity }}x</span>
+            <div>
+              <p class="font-medium text-gray-900">Product {{ item.productId.substring(0, 8) }}</p>
+              <p class="text-xs text-gray-400 font-mono">{{ item.productId }}</p>
+            </div>
+          </div>
+          <p class="text-lg font-black text-gray-900">${{ (item.price * item.quantity).toFixed(2) }}</p>
+        </div>
       </div>
+
       <div class="px-6 py-4 bg-gray-50 flex items-center justify-between">
         <p class="text-sm font-bold text-gray-600 uppercase tracking-wider">Total</p>
         <p class="text-2xl font-black text-indigo-600">${{ order.total }}</p>
@@ -129,23 +152,34 @@ const submitting = ref(false)
 const loading = ref(true)
 const error = ref(false)
 
+const anyShipped = computed(() => order.value?.subOrders?.some(s => s.status === 'SHIPPED'))
+
 const canRequestReturn = computed(() => {
   const s = order.value?.status
-  return (s === 'PAID' || s === 'SHIPPED') && !returnRequest.value
+  return (s === 'SHIPPED' || s === 'DELIVERED' || s === 'CONFIRMED' || s === 'PROCESSING') && !returnRequest.value
 })
 
-const timeline = computed(() => [
-  { label: 'Order placed', done: true, date: order.value?.createdAt },
-  { label: 'Payment confirmed', done: order.value?.status === 'PAID' || order.value?.status === 'SHIPPED' || order.value?.status === 'REFUNDED', date: null },
-  { label: 'Shipped', done: order.value?.status === 'SHIPPED' || order.value?.status === 'REFUNDED', date: null },
-  { label: 'Refunded', done: order.value?.status === 'REFUNDED', date: null },
-])
+const steps = ['PENDING', 'CONFIRMED', 'PROCESSING', 'SHIPPED', 'DELIVERED', 'COMPLETED']
+const timeline = computed(() => {
+  const orderStatus = order.value?.status || 'PENDING'
+  const idx = steps.indexOf(orderStatus)
+  const activeIdx = idx >= 0 ? idx : steps.indexOf('SHIPPED')
+
+  return steps.map((s, i) => ({
+    label: s.charAt(0) + s.slice(1).toLowerCase(),
+    done: i <= activeIdx,
+    date: null,
+  }))
+})
 
 const getStatusIcon = (status) => {
   switch (status) {
     case 'PENDING': return '⏳'
-    case 'PAID': return '✅'
+    case 'CONFIRMED': return '✅'
+    case 'PROCESSING': return '🔧'
     case 'SHIPPED': return '📦'
+    case 'DELIVERED': return '📬'
+    case 'COMPLETED': return '🎉'
     case 'CANCELLED': return '❌'
     case 'REFUNDED': return '💰'
     default: return '📄'
@@ -155,8 +189,11 @@ const getStatusIcon = (status) => {
 const getStatusBadgeClass = (status) => {
   switch (status) {
     case 'PENDING': return 'bg-amber-100 text-amber-700'
-    case 'PAID': return 'bg-green-100 text-green-700'
-    case 'SHIPPED': return 'bg-blue-100 text-blue-700'
+    case 'CONFIRMED': return 'bg-green-100 text-green-700'
+    case 'PROCESSING': return 'bg-blue-100 text-blue-700'
+    case 'SHIPPED': return 'bg-indigo-100 text-indigo-700'
+    case 'DELIVERED': return 'bg-teal-100 text-teal-700'
+    case 'COMPLETED': return 'bg-emerald-100 text-emerald-700'
     case 'CANCELLED': return 'bg-rose-100 text-rose-700'
     case 'REFUNDED': return 'bg-purple-100 text-purple-700'
     default: return 'bg-gray-100 text-gray-700'
@@ -191,6 +228,34 @@ const submitReturn = async () => {
   }
 }
 
+const confirmDelivery = async () => {
+  try {
+    const data = await $fetch(`${apiBaseUrl}/orders/${route.params.id}/confirm-delivery`, {
+      method: 'PATCH',
+      headers: authHeaders(),
+    })
+    order.value = data
+    notifications.success('Delivery confirmed')
+  } catch (err) {
+    notifications.error(err.data?.message || 'Failed to confirm delivery')
+  }
+}
+
+const cancelOrder = async () => {
+  if (!confirm('Are you sure you want to cancel this order?')) return
+  try {
+    await $fetch(`${apiBaseUrl}/orders/${route.params.id}/status`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', ...authHeaders() },
+      body: { status: 'CANCELLED' },
+    })
+    order.value.status = 'CANCELLED'
+    notifications.success('Order cancelled')
+  } catch (err) {
+    notifications.error(err.data?.message || 'Failed to cancel order')
+  }
+}
+
 const formatDate = (dateStr) => {
   if (!dateStr) return ''
   return new Date(dateStr).toLocaleDateString('en-US', {
@@ -212,13 +277,6 @@ onMounted(async () => {
     return
   }
   loading.value = false
-
-  if (order.value.status === 'SHIPPED') {
-    try {
-      const data = await $fetch(`${apiBaseUrl}/shipments/${order.value.id}`, { headers: authHeaders() })
-      tracking.value = data
-    } catch { /* not found yet */ }
-  }
 
   try {
     const data = await $fetch(`${apiBaseUrl}/orders/${order.value.id}/return`, { headers: authHeaders() })
