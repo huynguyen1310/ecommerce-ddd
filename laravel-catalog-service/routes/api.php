@@ -3,6 +3,8 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ShopController;
+use App\Http\Controllers\UploadController;
+use App\Http\Controllers\VariantController;
 
 Route::get('/products', [ProductController::class, 'index']);
 Route::get('/products/autocomplete', [ProductController::class, 'autocomplete']);
@@ -11,7 +13,18 @@ Route::get('/products/categories', [ProductController::class, 'categories']);
 Route::get('/products/{id}', [ProductController::class, 'show']);
 Route::post('/products', [ProductController::class, 'store']);
 Route::patch('/products/{id}/stock', [ProductController::class, 'updateStock']);
+Route::patch('/products/{id}', [ProductController::class, 'update'])->middleware('jwt.auth');
 Route::delete('/products/{id}', [ProductController::class, 'destroy']);
+
+Route::post('/upload', [UploadController::class, 'upload'])->middleware('jwt.auth');
+
+Route::get('/products/{productId}/variants', [VariantController::class, 'index']);
+
+Route::middleware('jwt.auth')->group(function () {
+    Route::post('/products/{productId}/variants', [VariantController::class, 'store']);
+    Route::patch('/products/{productId}/variants/{variantId}', [VariantController::class, 'update']);
+    Route::delete('/products/{productId}/variants/{variantId}', [VariantController::class, 'destroy']);
+});
 
 Route::post('/shops', [ShopController::class, 'store'])->middleware('jwt.auth');
 Route::get('/shops/my', [ShopController::class, 'my'])->middleware('jwt.auth');

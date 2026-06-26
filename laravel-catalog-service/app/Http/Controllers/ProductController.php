@@ -49,6 +49,7 @@ class ProductController extends Controller
                 'price' => $p->price,
                 'stock' => $p->stock,
                 'imageUrl' => $p->imageUrl,
+                'images' => $p->images,
                 'description' => $p->description,
                 'category' => $p->category,
                 'shopId' => $p->shopId,
@@ -105,6 +106,7 @@ class ProductController extends Controller
             'price' => $product->price,
             'stock' => $product->stock,
             'imageUrl' => $product->imageUrl,
+            'images' => $product->images,
             'description' => $product->description,
             'category' => $product->category,
             'shop' => $shop,
@@ -140,11 +142,40 @@ class ProductController extends Controller
                 (float) $request->price,
                 (int) $request->stock,
                 $request->shop_id,
+                $request->image_url,
+                $request->description,
+                $request->category,
+                null,
+                $request->images ?? [],
             );
             return response()->json(['message' => 'Product created', 'id' => $product->id], 201);
         } catch (\RuntimeException $e) {
             return response()->json(['error' => $e->getMessage()], 422);
         }
+    }
+
+    public function update(Request $request, string $id): JsonResponse
+    {
+        $product = $this->productRepository->findById($id);
+        if (!$product) return response()->json(['error' => 'Product not found'], 404);
+
+        if ($product->shopId) {
+            $shop = $this->shopRepository->findById($product->shopId);
+            if (!$shop || $shop->ownerId !== $request->input('jwt_user.id')) {
+                return response()->json(['error' => 'Forbidden'], 403);
+            }
+        }
+
+        if ($request->has('name')) $product->name = $request->name;
+        if ($request->has('price')) $product->price = (float) $request->price;
+        if ($request->has('stock')) $product->setStock((int) $request->stock);
+        if ($request->has('image_url')) $product->imageUrl = $request->image_url;
+        if ($request->has('images')) $product->images = $request->images;
+        if ($request->has('description')) $product->description = $request->description;
+        if ($request->has('category')) $product->category = $request->category;
+
+        $this->productRepository->save($product);
+        return response()->json(['message' => 'Product updated']);
     }
 
     public function destroy(string $id): JsonResponse

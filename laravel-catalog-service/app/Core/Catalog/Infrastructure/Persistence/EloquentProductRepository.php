@@ -29,6 +29,7 @@ class EloquentProductRepository
                 'price' => $product->price,
                 'stock' => $product->stock,
                 'image_url' => $product->imageUrl,
+                'images' => !empty($product->images) ? json_encode($product->images) : null,
                 'description' => $product->description,
                 'category' => $product->category,
                 'shop_id' => $product->shopId,
@@ -110,6 +111,6 @@ class EloquentProductRepository
 
     private function map($e): Product
     {
-        return new Product($e->id, $e->name, $e->sku, (float) $e->price, (int) $e->stock, $e->image_url, $e->description, $e->category, $e->shop_id);
+        return new Product($e->id, $e->name, $e->sku, (float) $e->price, (int) $e->stock, $e->image_url, $e->description, $e->category, $e->shop_id, json_decode($e->images ?? '[]', true) ?? []);
     }
 }

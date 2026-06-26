@@ -28,14 +28,15 @@ app.get('/cart/:userId', async (req, res) => {
 
 app.post('/cart/:userId/items', async (req, res) => {
   try {
-    const { productId, name, price, imageUrl, quantity, shopId, shopName } = req.body
+    const { productId, variantId, name, price, imageUrl, quantity, shopId, shopName } = req.body
     const key = cartKey(req.params.userId)
-    const existing = await redis.hget(key, productId)
-    const item = existing ? JSON.parse(existing) : { name, price, imageUrl }
+    const itemKey = variantId ? `${productId}:${variantId}` : productId
+    const existing = await redis.hget(key, itemKey)
+    const item = existing ? JSON.parse(existing) : { productId, name, price, imageUrl, variantId }
     if (shopId) item.shopId = shopId
     if (shopName) item.shopName = shopName
     item.quantity = (item.quantity || 0) + (quantity || 1)
-    await redis.hset(key, productId, JSON.stringify(item))
+    await redis.hset(key, itemKey, JSON.stringify(item))
     const items = await redis.hgetall(key)
     const parsed = Object.entries(items).map(([pid, data]) => ({ ...JSON.parse(data), productId: pid }))
     res.json(parsed)

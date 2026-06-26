@@ -39,6 +39,7 @@ const publicPaths = [
   ['DELETE', '/cart'],
   ['POST', '/coupons/validate'],
   ['GET', '/shops'],
+  ['GET', '/storage'],
 ]
 
 const isPublic = (req) => {
@@ -63,6 +64,7 @@ const routeMap = [
   ['/reviews', 'http://review-service:4000'],
   ['/products/', 'http://review-service:4000'],
   ['/shipments', 'http://shipping-service:4001'],
+  ['/api/upload', 'http://catalog-service:9000'],
   ['/chat', 'http://user-service:3002'],
   ['/become-vendor', 'http://user-service:3002'],
   ['/users', 'http://user-service:3002'],
@@ -97,6 +99,25 @@ const proxyRequest = (target, req, res) => {
 
   req.pipe(proxyReq)
 }
+
+app.use('/storage', (req, res) => {
+  const targetPath = req.path.replace(/^\/storage/, '')
+  const url = new URL('http://rustfs:9000' + targetPath + (req.url.includes('?') ? req.url.substring(req.url.indexOf('?')) : ''))
+  const options = {
+    hostname: url.hostname, port: url.port,
+    path: url.pathname + url.search,
+    method: req.method,
+    headers: { ...req.headers, host: url.hostname },
+  }
+  delete options.headers['access-control-request-headers']
+  delete options.headers['access-control-request-method']
+  const proxyReq = http.request(options, (proxyRes) => {
+    res.writeHead(proxyRes.statusCode, proxyRes.headers)
+    proxyRes.pipe(res)
+  })
+  proxyReq.on('error', () => res.status(502).json({ error: 'Bad gateway' }))
+  req.pipe(proxyReq)
+})
 
 app.use((req, res, next) => {
   for (const [prefix, target] of routeMap) {

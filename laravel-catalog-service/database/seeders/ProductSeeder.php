@@ -39,6 +39,11 @@ class ProductSeeder extends Seeder
 
     public function run(): void
     {
+        if (DB::table('products')->count() > 0) {
+            $this->seedImages();
+            return;
+        }
+
         $products = [];
         $usedSkus = [];
 
@@ -59,13 +64,16 @@ class ProductSeeder extends Seeder
             $usedSkus[] = $sku;
 
             $shopIndex = min(intdiv($i - 1, 40), 2);
+            $color = $this->randomColor();
+            $mainUrl = 'https://placehold.co/600x400/' . $color . '/ffffff?text=' . urlencode(substr($topic1, 0, 12)) . '&font=raleway';
             $products[] = [
                 'id' => '550e8400-e29b-41d4-a716-' . str_pad((string) $i, 12, '0', STR_PAD_LEFT),
                 'name' => $name,
                 'sku' => $sku,
                 'price' => round(mt_rand(1900, 19900) / 100, 2),
                 'stock' => mt_rand(0, 250),
-                'image_url' => 'https://placehold.co/400x400/' . $this->randomColor() . '/ffffff?text=' . urlencode(substr($topic1, 0, 12)) . '&font=raleway',
+                'image_url' => $mainUrl,
+                'images' => json_encode($this->generateImages($topic1, $topic2, $color)),
                 'description' => "Comprehensive guide to $topic1 and $topic2. " . $this->randomDescription($topic1, $topic2),
                 'category' => $category,
                 'shop_id' => $this->shopIds[$shopIndex],
@@ -81,12 +89,39 @@ class ProductSeeder extends Seeder
                     'price' => $product['price'],
                     'stock' => $product['stock'],
                     'image_url' => $product['image_url'],
+                    'images' => $product['images'],
                     'description' => $product['description'],
                     'category' => $product['category'],
                     'shop_id' => $product['shop_id'],
                     'updated_at' => now(),
                 ]
             );
+        }
+    }
+
+    private function generateImages(string $topic1, string $topic2, string $color): array
+    {
+        $imgs = [];
+        $angles = ['', '?angle=15', '?angle=30', '?angle=45', '?angle=60'];
+        $labels = [$topic1, $topic2, $topic1 . ' ' . $topic2, 'Preview', 'Detail'];
+        $taken = 2 + mt_rand(0, 2);
+        for ($j = 0; $j < min($taken, count($labels)); $j++) {
+            $imgs[] = 'https://placehold.co/600x400/' . $color . '/ffffff?text=' . urlencode(substr($labels[$j], 0, 16)) . $angles[$j];
+        }
+        return $imgs;
+    }
+
+    private function seedImages(): void
+    {
+        $products = DB::table('products')->whereNull('images')->orWhere('images', '[]')->get();
+        foreach ($products as $p) {
+            $topic1 = explode(' ', $p->name)[0] ?? 'Product';
+            $topic2 = explode(' ', $p->name)[2] ?? 'Preview';
+            $color = $this->randomColor();
+            DB::table('products')->where('id', $p->id)->update([
+                'images' => json_encode($this->generateImages($topic1, $topic2, $color)),
+                'updated_at' => now(),
+            ]);
         }
     }
 

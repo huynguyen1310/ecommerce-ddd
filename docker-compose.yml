@@ -84,6 +84,11 @@ services:
       RABBITMQ_HOST: rabbitmq
       MEILISEARCH_HOST: http://meilisearch:7700
       MEILISEARCH_KEY: master-key-ecom
+      AWS_ENDPOINT: http://rustfs:9000
+      AWS_ACCESS_KEY_ID: rustfsadmin
+      AWS_SECRET_ACCESS_KEY: rustfsadmin
+      AWS_BUCKET: ecom-files
+      AWS_URL: http://localhost:8080/storage/ecom-files
       RUN_MIGRATIONS: "true"
     depends_on:
       - catalog-db
@@ -106,6 +111,11 @@ services:
       RABBITMQ_HOST: rabbitmq
       MEILISEARCH_HOST: http://meilisearch:7700
       MEILISEARCH_KEY: master-key-ecom
+      AWS_ENDPOINT: http://rustfs:9000
+      AWS_ACCESS_KEY_ID: rustfsadmin
+      AWS_SECRET_ACCESS_KEY: rustfsadmin
+      AWS_BUCKET: ecom-files
+      AWS_URL: http://localhost:8080/storage/ecom-files
       RUN_MIGRATIONS: "false"
     depends_on:
       - catalog-db
@@ -253,6 +263,7 @@ services:
       - review-service
       - shipping-service
       - cart-service
+      - rustfs
 
   # Notification Service (Sends Emails)
   notification-service:
@@ -289,6 +300,20 @@ services:
     depends_on:
       - redis
 
+  # RustFS (S3-Compatible Object Storage)
+  rustfs:
+    image: rustfs/rustfs:latest
+    container_name: ecom-rustfs
+    ports:
+      - "9005:9000"
+      - "9006:9001"
+    environment:
+      RUSTFS_ROOT_USER: rustfsadmin
+      RUSTFS_ROOT_PASSWORD: rustfsadmin
+    volumes:
+      - rustfs_data:/data
+      - rustfs_logs:/logs
+
   # Mailhog (SMTP Server + UI)
   mailhog:
     image: mailhog/mailhog
@@ -299,6 +324,8 @@ services:
 
 volumes:
   meili_data:
+  rustfs_data:
+  rustfs_logs:
 
 networks:
   default:

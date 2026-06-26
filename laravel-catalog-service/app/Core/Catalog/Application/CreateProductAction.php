@@ -12,7 +12,7 @@ class CreateProductAction
         private EloquentProductRepository $productRepository
     ) {}
 
-    public function execute(string $name, string $sku, float $price, int $stock, ?string $shopId = null): Product
+    public function execute(string $name, string $sku, float $price, int $stock, ?string $shopId = null, ?string $imageUrl = null, ?string $description = null, ?string $category = null): Product
     {
         $existing = $this->productRepository->findBySku($sku);
         if ($existing) {
@@ -25,9 +25,9 @@ class CreateProductAction
             $sku,
             $price,
             $stock,
-            null,
-            null,
-            null,
+            $imageUrl,
+            $description,
+            $category,
             $shopId,
         );
 

@@ -13,17 +13,41 @@
     <NuxtLink to="/" class="text-sm text-indigo-600 hover:underline mb-6 inline-block">&larr; Back to catalog</NuxtLink>
 
     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-      <div class="h-64 bg-gray-50 flex items-center justify-center relative overflow-hidden">
-        <img
-          v-if="product.imageUrl"
-          :src="product.imageUrl"
-          :alt="product.name"
-          class="w-full h-full object-cover"
-        />
-        <span v-else class="text-6xl text-gray-400">📦</span>
+      <div class="bg-gray-50 relative overflow-hidden group" style="height:256px">
+        <Transition :name="slideDir" mode="out-in">
+          <img
+            v-if="currentImage"
+            :key="currentImage"
+            :src="currentImage"
+            :alt="product.name"
+            class="w-full h-full object-cover absolute inset-0"
+          />
+          <span v-else :key="'placeholder'" class="absolute inset-0 flex items-center justify-center text-6xl text-gray-400">📦</span>
+        </Transition>
         <span v-if="product.category" class="absolute top-3 left-3 bg-indigo-600/90 text-white text-xs font-black px-3 py-1.5 rounded-lg uppercase tracking-wider">
           {{ product.category }}
         </span>
+        <button
+          v-if="displayImages.length > 1"
+          @click="prevImage"
+          class="absolute left-2 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/90 hover:bg-white shadow flex items-center justify-center text-gray-700 text-xl font-bold z-10"
+        >‹</button>
+        <button
+          v-if="displayImages.length > 1"
+          @click="nextImage"
+          class="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/90 hover:bg-white shadow flex items-center justify-center text-gray-700 text-xl font-bold z-10"
+        >›</button>
+        <div v-if="displayImages.length > 1" class="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1.5">
+          <button
+            v-for="(img, i) in displayImages"
+            :key="i"
+            @click="selectedImageIndex = i"
+            :class="[
+              'w-2 h-2 rounded-full transition-all',
+              i === selectedImageIndex ? 'bg-white shadow-lg w-4' : 'bg-white/60 hover:bg-white/80'
+            ]"
+          />
+        </div>
       </div>
       <div class="p-8">
         <div class="flex justify-between items-start mb-2">
@@ -31,30 +55,51 @@
             <h1 class="text-3xl font-black text-gray-900">{{ product.name }}</h1>
             <p v-if="product.shop" class="text-sm text-gray-400 mt-1">Sold by <NuxtLink :to="`/shops/${product.shop.id}`" class="text-indigo-600 font-bold hover:underline">{{ product.shop.name }}</NuxtLink></p>
           </div>
-          <span class="text-3xl font-black text-indigo-600">${{ product.price }}</span>
+          <span class="text-3xl font-black text-indigo-600">${{ displayPrice }}</span>
         </div>
-        <p class="text-gray-400 text-xs font-mono mb-4">SKU: {{ product.sku }}</p>
+        <p class="text-gray-400 text-xs font-mono mb-4">SKU: {{ displaySku }}</p>
         <p v-if="product.description" class="text-gray-600 mb-6">{{ product.description }}</p>
         <p v-else class="text-gray-600 mb-6">High-quality product for your digital collection.</p>
 
+        <div v-if="variants.length > 0" class="mb-6">
+          <label class="block text-xs font-bold text-gray-400 uppercase mb-2">Variant</label>
+          <div class="flex flex-wrap gap-2">
+            <button
+              v-for="v in variants"
+              :key="v.id"
+              @click="selectedVariant = v"
+              :class="[
+                'px-4 py-2 rounded-xl border text-sm font-bold transition-all',
+                selectedVariant?.id === v.id
+                  ? 'border-indigo-600 bg-indigo-50 text-indigo-700'
+                  : 'border-gray-200 hover:border-gray-300 text-gray-600'
+              ]"
+            >
+              {{ variantLabel(v) }}
+              <span class="ml-1 text-indigo-600">${{ variantPrice(v) }}</span>
+            </button>
+          </div>
+        </div>
+
         <div class="flex items-center gap-4 mb-6">
-          <span v-if="product.stock > 0" class="text-sm font-bold text-emerald-600 bg-emerald-50 px-3 py-1 rounded-lg border border-emerald-100">In Stock ({{ product.stock }} available)</span>
+          <span v-if="displayStock > 0" class="text-sm font-bold text-emerald-600 bg-emerald-50 px-3 py-1 rounded-lg border border-emerald-100">In Stock ({{ displayStock }} available)</span>
           <span v-else class="text-sm font-bold text-rose-600 bg-rose-50 px-3 py-1 rounded-lg border border-rose-100">Out of Stock</span>
           <div class="flex items-center gap-2">
             <button
-              @click="cart.addToCart(product)"
-              :disabled="product.stock === 0"
+              v-if="!isOwnProduct"
+              @click="addToCart"
+              :disabled="displayStock === 0"
               :class="[
                 'px-6 py-3 font-black rounded-xl transition-all shadow-lg active:scale-95',
-                product.stock === 0
+                displayStock === 0
                   ? 'bg-gray-100 text-gray-400 cursor-not-allowed shadow-none'
                   : 'bg-indigo-600 hover:bg-indigo-700 text-white'
               ]"
             >
-              {{ product.stock === 0 ? 'Out of Stock' : 'Add to Cart' }}
+              {{ displayStock === 0 ? 'Out of Stock' : 'Add to Cart' }}
             </button>
             <button
-              v-if="auth.isLoggedIn && product.shop"
+              v-if="auth.isLoggedIn && product.shop && !isOwnProduct"
               @click="openChat"
               class="px-4 py-3 font-bold rounded-xl border border-gray-200 text-gray-600 hover:bg-gray-50 transition-all text-sm"
             >
@@ -110,9 +155,13 @@
         <p class="text-gray-400">Loading reviews...</p>
       </div>
 
-      <div v-else-if="reviews.length === 0" class="text-center py-8 border-2 border-dashed border-gray-200 rounded-xl">
+      <div v-else-if="reviews.length === 0 && !isOwnProduct" class="text-center py-8 border-2 border-dashed border-gray-200 rounded-xl">
         <span class="text-4xl mb-2 block">💬</span>
         <p class="text-gray-500">No reviews yet. Be the first to review!</p>
+      </div>
+      <div v-else-if="reviews.length === 0 && isOwnProduct" class="text-center py-8 border-2 border-dashed border-gray-200 rounded-xl">
+        <span class="text-4xl mb-2 block">📋</span>
+        <p class="text-gray-500">No reviews yet for this product.</p>
       </div>
 
       <div v-else class="space-y-4 mb-8">
@@ -134,7 +183,7 @@
         </div>
       </div>
 
-      <div v-if="auth.isLoggedIn" class="border-t border-gray-100 pt-6">
+      <div v-if="auth.isLoggedIn && !isOwnProduct" class="border-t border-gray-100 pt-6">
         <h3 class="text-lg font-bold text-gray-900 mb-4">Write a Review</h3>
         <div class="flex items-center gap-1 mb-3">
           <button v-for="i in 5" :key="i" @click="newRating = i" class="text-2xl" :class="i <= newRating ? 'text-amber-400' : 'text-gray-300'">★</button>
@@ -155,7 +204,7 @@
           </button>
         </div>
       </div>
-      <div v-else class="border-t border-gray-100 pt-6 text-center">
+      <div v-else-if="auth.isLoggedIn && !isOwnProduct" class="border-t border-gray-100 pt-6 text-center">
         <p class="text-gray-400">
           <NuxtLink to="/login" class="text-indigo-600 hover:underline">Log in</NuxtLink> to write a review.
         </p>
@@ -187,10 +236,62 @@ const reviewsLoading = ref(true)
 const error = ref(false)
 const newRating = ref(0)
 const newText = ref('')
+const variants = ref([])
+const selectedVariant = ref(null)
+const vendorShop = ref(null)
+
+const isOwnProduct = computed(() => vendorShop.value && product.value?.shop?.id === vendorShop.value?.id)
+const selectedImageIndex = ref(0)
+const slideDir = ref('slide-right')
+const displayImages = computed(() => {
+  if (selectedVariant.value?.imageUrl) return [selectedVariant.value.imageUrl]
+  const imgs = product.value?.images || []
+  return imgs.length > 0 ? imgs : (product.value?.imageUrl ? [product.value.imageUrl] : [])
+})
+const currentImage = computed(() => displayImages.value[selectedImageIndex.value] || null)
+
+function prevImage() {
+  slideDir.value = 'slide-right'
+  selectedImageIndex.value = (selectedImageIndex.value - 1 + displayImages.value.length) % displayImages.value.length
+  resetCycle()
+}
+function nextImage() {
+  slideDir.value = 'slide-left'
+  selectedImageIndex.value = (selectedImageIndex.value + 1) % displayImages.value.length
+  resetCycle()
+}
+
+let autoCycle
+function resetCycle() {
+  clearInterval(autoCycle)
+  autoCycle = setInterval(() => { if (displayImages.value.length > 1) nextImage() }, 4000)
+}
+onMounted(() => resetCycle())
+onUnmounted(() => clearInterval(autoCycle))
+
+watch(selectedVariant, () => { selectedImageIndex.value = 0 })
+
+const displayPrice = computed(() => selectedVariant.value?.price ?? product.value?.price ?? 0)
+const displaySku = computed(() => selectedVariant.value?.sku ?? product.value?.sku ?? '')
+const displayStock = computed(() => selectedVariant.value?.stock ?? product.value?.stock ?? 0)
+
+function variantLabel(v) {
+  const attrs = v.attributes || {}
+  const parts = Object.values(attrs).filter(Boolean)
+  return parts.length ? parts.join(' / ') : v.sku
+}
+
+function variantPrice(v) {
+  return v.price ?? product.value?.price ?? 0
+}
 
 const authHeaders = () => {
   if (!auth.token) return {}
   return { Authorization: `Bearer ${auth.token}` }
+}
+
+function addToCart() {
+  cart.addToCart({ ...product.value, selectedVariant: selectedVariant.value })
 }
 
 onMounted(async () => {
@@ -206,13 +307,22 @@ onMounted(async () => {
   }
   loading.value = false
 
+  if (auth.isLoggedIn) {
+    try {
+      const shop = await $fetch(`${apiBaseUrl}/shops/my`, { headers: authHeaders() })
+      vendorShop.value = shop
+    } catch { /* not a vendor */ }
+  }
+
   try {
-    const [reviewsData, relatedData] = await Promise.all([
+    const [reviewsData, relatedData, variantData] = await Promise.all([
       $fetch(`${apiBaseUrl}/products/${route.params.id}/reviews`),
       $fetch(`${apiBaseUrl}/api/products/${route.params.id}/related`),
+      $fetch(`${apiBaseUrl}/api/products/${route.params.id}/variants`).catch(() => ({ data: [] })),
     ])
     reviews.value = reviewsData
     relatedProducts.value = relatedData
+    variants.value = variantData.data || []
   } catch {
     console.error('Failed to load reviews/related')
   } finally {
@@ -267,3 +377,14 @@ async function deleteReview(id) {
   }
 }
 </script>
+
+<style scoped>
+.slide-left-enter-active, .slide-left-leave-active,
+.slide-right-enter-active, .slide-right-leave-active {
+  transition: all .5s ease;
+}
+.slide-left-enter-from { transform: translateX(100%); }
+.slide-left-leave-to   { transform: translateX(-100%); }
+.slide-right-enter-from { transform: translateX(-100%); }
+.slide-right-leave-to   { transform: translateX(100%); }
+</style>

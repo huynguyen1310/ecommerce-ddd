@@ -3,7 +3,9 @@
 namespace App\Providers;
 
 use App\Core\Catalog\Domain\ShopRepositoryInterface;
+use App\Core\Catalog\Domain\VariantRepositoryInterface;
 use App\Core\Catalog\Infrastructure\Persistence\EloquentShopRepository;
+use App\Core\Catalog\Infrastructure\Persistence\EloquentVariantRepository;
 use App\Core\Catalog\Infrastructure\Search\MeilisearchProductIndex;
 use Illuminate\Support\ServiceProvider;
 use Meilisearch\Client;
@@ -24,6 +26,7 @@ class AppServiceProvider extends ServiceProvider
         });
 
         $this->app->bind(ShopRepositoryInterface::class, EloquentShopRepository::class);
+        $this->app->bind(VariantRepositoryInterface::class, EloquentVariantRepository::class);
     }
 
     public function boot(): void

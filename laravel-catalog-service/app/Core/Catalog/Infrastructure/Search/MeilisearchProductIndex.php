@@ -25,6 +25,7 @@ class MeilisearchProductIndex
                 'sku' => $product->sku,
                 'price' => $product->price,
                 'imageUrl' => $product->imageUrl ?? '',
+                'images' => $product->images,
             ]
         ]);
     }
@@ -72,6 +73,7 @@ class MeilisearchProductIndex
             'sku' => $p->sku,
             'price' => $p->price,
             'imageUrl' => $p->imageUrl ?? '',
+            'images' => $p->images,
         ], $products);
 
         $index = $this->client->index(self::INDEX_NAME);

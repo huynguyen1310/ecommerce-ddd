@@ -6,19 +6,20 @@ class Product
 {
     public function __construct(
         public readonly string $id,
-        public readonly string $name,
+        public string $name,
         public readonly string $sku,
-        public readonly float $price,
+        public float $price,
         public int $stock,
-        public readonly ?string $imageUrl = null,
-        public readonly ?string $description = null,
-        public readonly ?string $category = null,
+        public ?string $imageUrl = null,
+        public ?string $description = null,
+        public ?string $category = null,
         public readonly ?string $shopId = null,
+        public array $images = [],
     ) {}
 
-    public static function create(string $id, string $name, string $sku, float $price, int $stock, ?string $imageUrl = null, ?string $description = null, ?string $category = null, ?string $shopId = null): self
+    public static function create(string $id, string $name, string $sku, float $price, int $stock, ?string $imageUrl = null, ?string $description = null, ?string $category = null, ?string $shopId = null, array $images = []): self
     {
-        return new self($id, $name, $sku, $price, $stock, $imageUrl, $description, $category, $shopId);
+        return new self($id, $name, $sku, $price, $stock, $imageUrl, $description, $category, $shopId, $images);
     }
 
     public function reduceStock(int $quantity): void

@@ -60,8 +60,9 @@ export const useCartStore = defineStore('cart', {
           headers: { 'Content-Type': 'application/json', ...authHeaders() },
           body: {
             productId: product.id,
+            variantId: product.selectedVariant?.id || null,
             name: product.name,
-            price: product.price,
+            price: product.selectedVariant?.price ?? product.price,
             imageUrl: product.imageUrl || '',
             quantity: 1,
             shopId: product.shop?.id || product.shopId,
