@@ -21,8 +21,8 @@ class MeilisearchSetup extends Command
         $index = $this->meilisearch->index('products');
 
         $index->updateSearchableAttributes(['name', 'description', 'sku', 'category']);
-        $index->updateFilterableAttributes(['category']);
-        $index->updateSortableAttributes(['price', 'name']);
+        $index->updateFilterableAttributes(['category', 'price', 'in_stock', 'shop_id']);
+        $index->updateSortableAttributes(['price', 'name', 'created_at']);
 
         $this->info('Meilisearch index configured.');
     }

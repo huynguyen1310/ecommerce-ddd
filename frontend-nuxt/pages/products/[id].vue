@@ -328,6 +328,12 @@ onMounted(async () => {
   } finally {
     reviewsLoading.value = false
   }
+
+  // Record view
+  $fetch(`${apiBaseUrl}/api/products/view`, {
+    method: 'POST',
+    body: { user_id: auth.user?.id || 'anonymous', product_id: route.params.id },
+  }).catch(() => {})
 })
 
 async function submitReview() {

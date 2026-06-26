@@ -1,9 +1,43 @@
 <template>
   <div class="min-h-screen flex flex-col bg-gray-50">
     <header class="bg-white shadow-sm border-b sticky top-0 z-50">
-      <nav class="container mx-auto px-4 h-16 flex items-center justify-between">
-        <NuxtLink to="/" class="text-2xl font-bold text-indigo-600 tracking-tight">E-Shop</NuxtLink>
-        
+      <nav class="container mx-auto px-4 h-16 flex items-center gap-4">
+        <NuxtLink to="/" class="text-2xl font-bold text-indigo-600 tracking-tight shrink-0">E-Shop</NuxtLink>
+
+        <div class="relative flex-1 max-w-md">
+          <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M11 19a8 8 0 100-16 8 8 0 000 16z"/></svg>
+          <input
+            v-model="searchQuery"
+            @input="onSearchInput"
+            @focus="searchFocused = true"
+            @blur="onSearchBlur"
+            @keydown.enter="goToSearch"
+            placeholder="Search products..."
+            class="w-full pl-9 pr-8 py-2 rounded-xl border border-gray-200 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none text-sm transition-all bg-gray-50 focus:bg-white"
+          />
+          <button v-if="searchQuery" @click="searchQuery = ''; searchResults = []; searchFocused = false" class="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-300 hover:text-gray-500">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
+
+          <div v-if="searchFocused && searchResults.length > 0" class="absolute top-full mt-1 left-0 right-0 bg-white rounded-xl border border-gray-100 shadow-xl z-50 py-2 max-h-80 overflow-y-auto">
+            <NuxtLink v-for="r in searchResults" :key="r.id" :to="`/products/${r.id}`" @click="searchFocused = false; searchQuery = ''" class="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition-colors">
+              <div class="w-10 h-10 bg-gray-100 rounded-lg overflow-hidden shrink-0">
+                <img v-if="r.imageUrl" :src="r.imageUrl" class="w-full h-full object-cover" />
+                <span v-else class="flex items-center justify-center h-full text-lg">📦</span>
+              </div>
+              <div class="flex-1 min-w-0">
+                <p class="text-sm font-bold text-gray-900 truncate">{{ r.name }}</p>
+                <p class="text-xs text-gray-400">${{ Number(r.price).toFixed(2) }}<span v-if="r.shop_name"> · {{ r.shop_name }}</span></p>
+              </div>
+              <span v-if="!r.in_stock" class="text-[10px] font-bold text-rose-500 shrink-0">OOS</span>
+            </NuxtLink>
+            <NuxtLink :to="`/search?q=${searchQuery}`" @click="searchFocused = false" class="flex items-center gap-2 px-4 py-2.5 text-sm font-bold text-indigo-600 hover:bg-indigo-50 border-t border-gray-50 mt-1">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M11 19a8 8 0 100-16 8 8 0 000 16z"/></svg>
+              View all results for "{{ searchQuery }}"
+            </NuxtLink>
+          </div>
+        </div>
+
         <div class="flex items-center space-x-6">
           <NuxtLink to="/" class="text-gray-600 hover:text-indigo-600 transition-colors font-medium">Home</NuxtLink>
           <NuxtLink v-if="auth.isLoggedIn" to="/orders" class="text-gray-600 hover:text-indigo-600 transition-colors font-medium">My Orders</NuxtLink>
@@ -67,6 +101,36 @@ const unreadCount = ref(0)
 let unreadTimer = null
 
 const cartCount = computed(() => cartStore.items.reduce((sum, item) => sum + item.quantity, 0))
+const apiBaseUrl = process.server ? config.apiGatewayInternalUrl : config.public.apiGatewayUrl
+
+// Search
+const searchQuery = ref('')
+const searchResults = ref([])
+const searchFocused = ref(false)
+let searchTimer = null
+
+function onSearchInput() {
+  clearTimeout(searchTimer)
+  if (searchQuery.value.length < 2) { searchResults.value = []; return }
+  searchTimer = setTimeout(fetchSuggestions, 250)
+}
+
+async function fetchSuggestions() {
+  try {
+    const res = await $fetch(`${apiBaseUrl}/api/products/autocomplete?q=${encodeURIComponent(searchQuery.value)}`)
+    searchResults.value = (res || []).slice(0, 6)
+  } catch { searchResults.value = [] }
+}
+
+function onSearchBlur() {
+  setTimeout(() => { searchFocused.value = false }, 200)
+}
+
+function goToSearch() {
+  if (searchQuery.value.length >= 2) {
+    window.location.href = `/search?q=${encodeURIComponent(searchQuery.value)}`
+  }
+}
 
 const fetchUnread = async () => {
   if (!auth.isLoggedIn) return

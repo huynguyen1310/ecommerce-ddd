@@ -13,20 +13,29 @@ class MeilisearchProductIndex
         private Client $client
     ) {}
 
-    public function sync(Product $product): void
+    private function toDocument(Product $product, ?string $shopName = null): array
     {
-        $index = $this->client->index(self::INDEX_NAME);
-        $index->addDocuments([
-            [
-                'id' => $product->id,
-                'name' => $product->name,
-                'description' => $product->description ?? '',
-                'category' => $product->category ?? '',
-                'sku' => $product->sku,
-                'price' => $product->price,
-                'imageUrl' => $product->imageUrl ?? '',
-                'images' => $product->images,
-            ]
+        return [
+            'id' => $product->id,
+            'name' => $product->name,
+            'description' => $product->description ?? '',
+            'category' => $product->category ?? '',
+            'sku' => $product->sku,
+            'price' => (float) $product->price,
+            'imageUrl' => $product->imageUrl ?? '',
+            'images' => $product->images,
+            'shop_id' => $product->shopId ?? '',
+            'shop_name' => $shopName ?? '',
+            'in_stock' => $product->stock > 0,
+            'stock' => $product->stock,
+            'created_at' => time(),
+        ];
+    }
+
+    public function sync(Product $product, ?string $shopName = null): void
+    {
+        $this->client->index(self::INDEX_NAME)->addDocuments([
+            $this->toDocument($product, $shopName),
         ]);
     }
 
@@ -35,12 +44,12 @@ class MeilisearchProductIndex
         $this->client->index(self::INDEX_NAME)->deleteDocument($id);
     }
 
-    /** @return array{id: string, name: string, price: float, imageUrl: string}[] */
+    /** @return array{id: string, name: string, price: float, imageUrl: string, shop_name: string}[] */
     public function suggest(string $query, int $limit = 5): array
     {
         $result = $this->client->index(self::INDEX_NAME)->search($query, [
             'limit' => $limit,
-            'attributesToRetrieve' => ['id', 'name', 'price', 'imageUrl'],
+            'attributesToRetrieve' => ['id', 'name', 'price', 'imageUrl', 'shop_name', 'in_stock'],
         ]);
         return $result->getHits();
     }
@@ -63,21 +72,61 @@ class MeilisearchProductIndex
         return array_column($result->getHits(), 'id');
     }
 
+    /** @return array{hits: array, total: int, page: int, perPage: int} */
+    public function search(
+        string $query,
+        array $filters = [],
+        string $sort = '',
+        int $page = 1,
+        int $perPage = 20,
+    ): array {
+        $params = [
+            'page' => $page,
+            'hitsPerPage' => $perPage,
+            'attributesToRetrieve' => ['id', 'name', 'price', 'imageUrl', 'category', 'in_stock', 'shop_name', 'shop_id'],
+            'attributesToHighlight' => ['name', 'description'],
+        ];
+
+        $filterParts = [];
+        if (!empty($filters['category'])) {
+            $filterParts[] = "category = " . $this->escapeFilterValue($filters['category']);
+        }
+        if (isset($filters['min_price'])) {
+            $filterParts[] = "price >= {$filters['min_price']}";
+        }
+        if (isset($filters['max_price'])) {
+            $filterParts[] = "price <= {$filters['max_price']}";
+        }
+        if (!empty($filters['in_stock'])) {
+            $filterParts[] = 'in_stock = true';
+        }
+        if (!empty($filters['shop_id'])) {
+            $filterParts[] = "shop_id = " . $this->escapeFilterValue($filters['shop_id']);
+        }
+
+        if ($filterParts) {
+            $params['filter'] = implode(' AND ', $filterParts);
+        }
+
+        if ($sort) {
+            $params['sort'] = [$sort];
+        }
+
+        $result = $this->client->index(self::INDEX_NAME)->search($query, $params);
+
+        return [
+            'hits' => $result->getHits(),
+            'total' => $result->getTotalHits() ?? 0,
+            'page' => $result->getPage(),
+            'perPage' => $result->getHitsPerPage(),
+        ];
+    }
+
     public function seedAll(array $products): void
     {
-        $documents = array_map(fn(Product $p) => [
-            'id' => $p->id,
-            'name' => $p->name,
-            'description' => $p->description ?? '',
-            'category' => $p->category ?? '',
-            'sku' => $p->sku,
-            'price' => $p->price,
-            'imageUrl' => $p->imageUrl ?? '',
-            'images' => $p->images,
-        ], $products);
+        $documents = array_map(fn(Product $p) => $this->toDocument($p), $products);
 
-        $index = $this->client->index(self::INDEX_NAME);
-        $index->addDocuments($documents);
+        $this->client->index(self::INDEX_NAME)->addDocuments($documents);
     }
 
     private function escapeFilterValue(string $value): string

@@ -72,6 +72,102 @@ class ProductController extends Controller
         ]);
     }
 
+    public function search(Request $request): JsonResponse
+    {
+        $result = $this->productRepository->searchWithFilters(
+            $request->query('q', ''),
+            [
+                'category' => $request->query('category'),
+                'min_price' => $request->query('min_price'),
+                'max_price' => $request->query('max_price'),
+                'in_stock' => $request->query('in_stock'),
+                'shop_id' => $request->query('shop_id'),
+            ],
+            $request->query('sort', ''),
+            (int) $request->query('page', 1),
+            (int) $request->query('per_page', 20),
+        );
+
+        $shopIds = array_unique(array_filter(array_map(fn($h) => $h['shop_id'] ?? null, $result['hits'])));
+        $shops = !empty($shopIds) ? \App\Models\ShopEloquentModel::whereIn('id', $shopIds)->get()->keyBy('id') : collect();
+
+        $data = array_map(function ($h) use ($shops) {
+            $item = [
+                'id' => $h['id'],
+                'name' => $h['name'],
+                'price' => $h['price'],
+                'imageUrl' => $h['imageUrl'] ?? '',
+                'category' => $h['category'] ?? '',
+                'inStock' => $h['in_stock'] ?? false,
+                'shopId' => $h['shop_id'] ?? '',
+            ];
+            $item['shop'] = ['name' => $h['shop_name'] ?? ''];
+            return $item;
+        }, $result['hits']);
+
+        return response()->json([
+            'data' => $data,
+            'meta' => [
+                'total' => $result['total'],
+                'page' => $result['page'],
+                'per_page' => $result['perPage'],
+            ],
+        ]);
+    }
+
+    public function trending(Request $request): JsonResponse
+    {
+        return $this->itemsResponse($this->productRepository->trending((int) $request->query('limit', 20)));
+    }
+
+    public function newArrivals(Request $request): JsonResponse
+    {
+        $products = $this->productRepository->newArrivals((int) $request->query('limit', 20));
+        return $this->itemsResponse($products);
+    }
+
+    public function recommended(Request $request): JsonResponse
+    {
+        $productId = $request->query('productId', '');
+        $products = $this->productRepository->recommended($productId, (int) $request->query('limit', 12));
+        return $this->itemsResponse($products);
+    }
+
+    public function recordView(Request $request): JsonResponse
+    {
+        $userId = $request->input('user_id');
+        $productId = $request->input('product_id');
+        if (!$productId) {
+            return response()->json(['error' => 'product_id required'], 400);
+        }
+        $this->productRepository->recordView($userId ?? 'anonymous', $productId);
+        return response()->json(['message' => 'ok']);
+    }
+
+    public function recentlyViewed(Request $request): JsonResponse
+    {
+        $userId = $request->query('user_id');
+        if (!$userId) {
+            return response()->json([]);
+        }
+        return $this->itemsResponse($this->productRepository->recentlyViewed($userId));
+    }
+
+    private function itemsResponse(array $products): JsonResponse
+    {
+        $shopIds = array_unique(array_filter(array_map(fn($p) => $p->shopId, $products)));
+        $shops = !empty($shopIds) ? \App\Models\ShopEloquentModel::whereIn('id', $shopIds)->get()->keyBy('id') : collect();
+        $data = array_map(function ($p) use ($shops) {
+            $item = ['id' => $p->id, 'name' => $p->name, 'price' => $p->price, 'imageUrl' => $p->imageUrl, 'category' => $p->category, 'shopId' => $p->shopId];
+            if ($p->shopId && $shops->has($p->shopId)) {
+                $s = $shops->get($p->shopId);
+                $item['shop'] = ['id' => $s->id, 'name' => $s->name];
+            }
+            return $item;
+        }, $products);
+        return response()->json($data);
+    }
+
     public function related(Request $request, string $id): JsonResponse
     {
         $product = $this->productRepository->findById($id);

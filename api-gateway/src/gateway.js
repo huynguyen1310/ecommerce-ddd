@@ -32,6 +32,7 @@ const publicPaths = [
   ['POST', '/register'],
   ['GET', '/api/products'],
   ['GET', '/api/products/'],
+  ['POST', '/api/products/view'],
   ['GET', '/products/'],
   ['GET', '/cart'],
   ['POST', '/cart'],

@@ -1,5 +1,65 @@
 <template>
   <div>
+    <!-- Trending Now -->
+    <section v-if="trending.length" class="mb-10">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-xl font-black text-gray-900 tracking-tight">🔥 Trending Now</h2>
+        <NuxtLink to="/search?sort=created_at:desc" class="text-sm font-bold text-indigo-600 hover:text-indigo-800">View all</NuxtLink>
+      </div>
+      <div class="flex gap-4 overflow-x-auto pb-2 snap-x snap-mandatory scrollbar-none">
+        <NuxtLink v-for="p in trending" :key="p.id" :to="`/products/${p.id}`" class="snap-start shrink-0 w-48 bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-md transition-shadow group">
+          <div class="aspect-square bg-gray-50 relative overflow-hidden">
+            <img v-if="p.imageUrl" :src="p.imageUrl" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+            <span v-else class="flex items-center justify-center h-full text-3xl text-gray-300">📦</span>
+          </div>
+          <div class="p-3">
+            <p class="text-sm font-bold text-gray-900 truncate">{{ p.name }}</p>
+            <p class="text-xs font-black text-indigo-600 mt-1">${{ Number(p.price).toFixed(2) }}</p>
+          </div>
+        </NuxtLink>
+      </div>
+    </section>
+
+    <!-- New Arrivals -->
+    <section v-if="newArrivals.length" class="mb-10">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-xl font-black text-gray-900 tracking-tight">✨ New Arrivals</h2>
+        <NuxtLink to="/search?sort=created_at:desc" class="text-sm font-bold text-indigo-600 hover:text-indigo-800">View all</NuxtLink>
+      </div>
+      <div class="flex gap-4 overflow-x-auto pb-2 snap-x snap-mandatory scrollbar-none">
+        <NuxtLink v-for="p in newArrivals" :key="p.id" :to="`/products/${p.id}`" class="snap-start shrink-0 w-48 bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-md transition-shadow group">
+          <div class="aspect-square bg-gray-50 relative overflow-hidden">
+            <img v-if="p.imageUrl" :src="p.imageUrl" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+            <span v-else class="flex items-center justify-center h-full text-3xl text-gray-300">📦</span>
+            <span class="absolute top-2 left-2 bg-emerald-500 text-white text-[10px] font-black px-2 py-0.5 rounded-md uppercase tracking-wider">New</span>
+          </div>
+          <div class="p-3">
+            <p class="text-sm font-bold text-gray-900 truncate">{{ p.name }}</p>
+            <p class="text-xs font-black text-indigo-600 mt-1">${{ Number(p.price).toFixed(2) }}</p>
+          </div>
+        </NuxtLink>
+      </div>
+    </section>
+
+    <!-- Recently Viewed -->
+    <section v-if="recentlyViewed.length" class="mb-10">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-xl font-black text-gray-900 tracking-tight">👀 Recently Viewed</h2>
+      </div>
+      <div class="flex gap-4 overflow-x-auto pb-2 snap-x snap-mandatory scrollbar-none">
+        <NuxtLink v-for="p in recentlyViewed" :key="p.id" :to="`/products/${p.id}`" class="snap-start shrink-0 w-48 bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-md transition-shadow group">
+          <div class="aspect-square bg-gray-50 relative overflow-hidden">
+            <img v-if="p.imageUrl" :src="p.imageUrl" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+            <span v-else class="flex items-center justify-center h-full text-3xl text-gray-300">📦</span>
+          </div>
+          <div class="p-3">
+            <p class="text-sm font-bold text-gray-900 truncate">{{ p.name }}</p>
+            <p class="text-xs font-black text-indigo-600 mt-1">${{ Number(p.price).toFixed(2) }}</p>
+          </div>
+        </NuxtLink>
+      </div>
+    </section>
+
     <div class="flex items-center justify-between mb-8">
       <div>
         <h1 class="text-4xl font-black text-gray-900 tracking-tight">Digital Catalog</h1>
@@ -100,9 +160,12 @@
 <script setup>
 import { useCartStore } from '~/stores/cart'
 import { useNotificationStore } from '~/stores/notifications'
+import { useAuthStore } from '~/stores/auth'
 
 const cart = useCartStore()
+const auth = useAuthStore()
 const notifications = useNotificationStore()
+const config = useRuntimeConfig()
 
 const products = ref([])
 const loading = ref(true)
@@ -113,6 +176,12 @@ const selectedCategory = ref('')
 const selectedSort = ref('name,asc')
 const categories = ref([])
 const gridKey = ref(0)
+
+const trending = ref([])
+const newArrivals = ref([])
+const recentlyViewed = ref([])
+
+const apiBaseUrl = process.server ? config.apiGatewayInternalUrl : config.public.apiGatewayUrl
 
 
 const visiblePages = computed(() => {
@@ -197,9 +266,21 @@ watch([searchQuery, selectedCategory, selectedSort], () => {
   debounceTimer = setTimeout(() => fetchProducts(1), 300)
 })
 
+async function fetchDiscovery() {
+  await Promise.all([
+    $fetch(`${apiBaseUrl}/api/products/trending?limit=10`).then(r => trending.value = r || []).catch(() => {}),
+    $fetch(`${apiBaseUrl}/api/products/new-arrivals?limit=10`).then(r => newArrivals.value = r || []).catch(() => {}),
+  ])
+  const userId = auth.user?.id
+  if (userId) {
+    $fetch(`${apiBaseUrl}/api/products/recently-viewed?user_id=${userId}`).then(r => recentlyViewed.value = r || []).catch(() => {})
+  }
+}
+
 onMounted(() => {
   fetchProducts(1)
   fetchCategories()
+  fetchDiscovery()
 })
 </script>
 
@@ -217,5 +298,13 @@ onMounted(() => {
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 </style>

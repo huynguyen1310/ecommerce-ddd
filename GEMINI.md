@@ -37,4 +37,9 @@ This file contains the foundational instructions and architectural rules for thi
 - **Cart Service**: Stateless Express app backed by Redis. No build step — files are edited in place (`docker cp` + restart).
 - **PHP Hot-Reload**: Laravel reads PHP files on each request. `docker cp` into the container is sufficient — no rebuild needed.
 - **Seeds**: Identity service auto-seeds on boot (`initDb()`). Catalog service seeds via `php artisan db:seed`. Vendor UUIDs must match across services.
+- **Bootstrap cache**: If `CollisionServiceProvider` error at boot, delete `bootstrap/cache/packages.php` and `services.php` (stale dev cache). Entrypoint.sh now auto-clears this.
+- **Upload**: `POST /api/upload` requires JWT + native `fetch()` for FormData (Nuxt `$fetch` mishandles multipart).
+- **Node 22+** required for Nuxt build (`styleText` in `node:util` missing in Node 18).
+- **Meilisearch SDK v1.16**: Uses `getTotalHits()` not `getTotal()`. Index config via `php artisan meilisearch:setup`.
+- **View tracking**: `POST /api/products/view` records product views in `product_views` table, cleaned >30d. Trending queries from this table.
 

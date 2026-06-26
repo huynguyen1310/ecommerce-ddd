@@ -7,7 +7,13 @@ use App\Http\Controllers\UploadController;
 use App\Http\Controllers\VariantController;
 
 Route::get('/products', [ProductController::class, 'index']);
+Route::get('/products/search', [ProductController::class, 'search']);
 Route::get('/products/autocomplete', [ProductController::class, 'autocomplete']);
+Route::get('/products/trending', [ProductController::class, 'trending']);
+Route::get('/products/new-arrivals', [ProductController::class, 'newArrivals']);
+Route::get('/products/recommended', [ProductController::class, 'recommended']);
+Route::get('/products/recently-viewed', [ProductController::class, 'recentlyViewed']);
+Route::post('/products/view', [ProductController::class, 'recordView']);
 Route::get('/products/{id}/related', [ProductController::class, 'related']);
 Route::get('/products/categories', [ProductController::class, 'categories']);
 Route::get('/products/{id}', [ProductController::class, 'show']);

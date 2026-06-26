@@ -18,6 +18,9 @@ done
 if [ "$RUN_MIGRATIONS" = "true" ]; then
     echo "Ensuring directories exist..."
     mkdir -p public bootstrap/cache storage/framework/cache storage/framework/sessions storage/framework/views storage/logs
+
+    echo "Clearing stale bootstrap cache..."
+    rm -f bootstrap/cache/packages.php bootstrap/cache/services.php bootstrap/cache/config.php
     
     echo "Updating autoloader..."
     composer dump-autoload --no-interaction
