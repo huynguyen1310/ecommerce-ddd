@@ -24,7 +24,14 @@
           />
           <span v-else :key="'placeholder'" class="absolute inset-0 flex items-center justify-center text-6xl text-gray-400">📦</span>
         </Transition>
-        <span v-if="product.category" class="absolute top-3 left-3 bg-indigo-600/90 text-white text-xs font-black px-3 py-1.5 rounded-lg uppercase tracking-wider">
+        <span v-if="promo.getBestPromotion(product.id, product.shop_id)" class="absolute top-3 left-3 bg-rose-600 text-white text-xs font-black px-3 py-1.5 rounded-lg uppercase tracking-wider">
+          <div class="flex items-center gap-1">
+            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+            -{{ promo.getBestPromotion(product.id, product.shop_id)?.rewards?.percent_off ?? 0 }}% FLASH
+          </div>
+          <PromotionTimer :end-at="promo.getBestPromotion(product.id, product.shop_id).end_at" class="text-white/80" />
+        </span>
+        <span v-else-if="product.category" class="absolute top-3 left-3 bg-indigo-600/90 text-white text-xs font-black px-3 py-1.5 rounded-lg uppercase tracking-wider">
           {{ product.category }}
         </span>
         <button
@@ -55,7 +62,11 @@
             <h1 class="text-3xl font-black text-gray-900">{{ product.name }}</h1>
             <p v-if="product.shop" class="text-sm text-gray-400 mt-1">Sold by <NuxtLink :to="`/shops/${product.shop.id}`" class="text-indigo-600 font-bold hover:underline">{{ product.shop.name }}</NuxtLink></p>
           </div>
-          <span class="text-3xl font-black text-indigo-600">${{ displayPrice }}</span>
+          <div v-if="promo.getBestPromotion(product.id, product.shop_id)" class="text-right">
+            <span class="text-3xl font-black text-rose-600">${{ (Number(displayPrice) * (1 - (promo.getBestPromotion(product.id, product.shop_id)?.rewards?.percent_off ?? 0) / 100)).toFixed(2) }}</span>
+            <p class="text-sm text-gray-400 line-through">${{ Number(displayPrice).toFixed(2) }}</p>
+          </div>
+          <span v-else class="text-3xl font-black text-indigo-600">${{ displayPrice }}</span>
         </div>
         <p class="text-gray-400 text-xs font-mono mb-4">SKU: {{ displaySku }}</p>
         <p v-if="product.description" class="text-gray-600 mb-6">{{ product.description }}</p>
@@ -227,6 +238,7 @@ const route = useRoute()
 const router = useRouter()
 const config = useRuntimeConfig()
 const apiBaseUrl = process.server ? config.apiGatewayInternalUrl : config.public.apiGatewayUrl
+const promo = usePromotions()
 
 const product = ref(null)
 const reviews = ref([])
@@ -328,6 +340,8 @@ onMounted(async () => {
   } finally {
     reviewsLoading.value = false
   }
+
+  promo.fetchAllActive()
 
   // Record view
   $fetch(`${apiBaseUrl}/api/products/view`, {

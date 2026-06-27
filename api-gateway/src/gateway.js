@@ -41,6 +41,8 @@ const authMiddleware = (req, res, next) => {
 const publicPaths = [
   ['POST', '/login'],
   ['POST', '/register'],
+  ['GET', '/api/promotions'],
+  ['POST', '/api/promotions/validate'],
   ['GET', '/api/products'],
   ['GET', '/api/products/'],
   ['POST', '/api/products/view'],
@@ -71,6 +73,8 @@ app.use((req, res, next) => {
 
 const routeMap = [
   ['/shops', 'http://catalog-service:9000/api'],
+  ['/api/promotions', 'http://catalog-service:9000'],
+  ['/api/promotions/', 'http://catalog-service:9000'],
   ['/api/products', 'http://catalog-service:9000'],
   ['/api/products/', 'http://catalog-service:9000'],
   ['/cart', 'http://cart-service:3004'],

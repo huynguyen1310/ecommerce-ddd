@@ -34,6 +34,11 @@
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
             Products
           </NuxtLink>
+          <NuxtLink to="/vendor/promotions" class="flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-bold transition-all"
+            :class="isActive('/vendor/promotions') ? 'bg-indigo-50 text-indigo-700' : 'text-gray-600 hover:bg-gray-100'">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21l-7-4-7 4V5a2 2 0 012-2h10a2 2 0 012 2v16z"/></svg>
+            Promotions
+          </NuxtLink>
         </nav>
 
         <div class="p-3 border-t border-gray-100">

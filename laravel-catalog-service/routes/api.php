@@ -5,6 +5,7 @@ use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ShopController;
 use App\Http\Controllers\UploadController;
 use App\Http\Controllers\VariantController;
+use App\Http\Controllers\PromotionController;
 
 Route::get('/products', [ProductController::class, 'index']);
 Route::get('/products/search', [ProductController::class, 'search']);
@@ -39,3 +40,9 @@ Route::patch('/shops/admin/{id}/approve', [ShopController::class, 'approve'])->m
 Route::patch('/shops/admin/{id}/suspend', [ShopController::class, 'suspend'])->middleware('jwt.auth');
 Route::get('/shops/{id}', [ShopController::class, 'show']);
 Route::get('/shops/{id}/products', [ShopController::class, 'products']);
+
+Route::get('/promotions', [PromotionController::class, 'index']);
+Route::post('/promotions', [PromotionController::class, 'store'])->middleware('jwt.auth');
+Route::patch('/promotions/{id}', [PromotionController::class, 'update'])->middleware('jwt.auth');
+Route::delete('/promotions/{id}', [PromotionController::class, 'destroy'])->middleware('jwt.auth');
+Route::post('/promotions/validate', [PromotionController::class, 'validate']);

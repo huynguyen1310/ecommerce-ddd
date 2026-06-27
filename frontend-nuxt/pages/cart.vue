@@ -33,8 +33,9 @@
                 </div>
               </div>
               <div class="text-right">
-                <p class="font-black text-indigo-600">${{ (item.price * item.quantity).toFixed(2) }}</p>
-                <p class="text-xs text-gray-400">${{ item.price.toFixed(2) }}/ea</p>
+                <p v-if="getItemPromotion(item)" class="font-black text-rose-600">${{ (item.price * item.quantity * (1 - (getItemPromotion(item)?.rewards?.percent_off ?? 0) / 100)).toFixed(2) }}</p>
+                <p v-else class="font-black text-indigo-600">${{ (item.price * item.quantity).toFixed(2) }}</p>
+                <p class="text-xs text-gray-400">{{ getItemPromotion(item) ? `Was $${(item.price * item.quantity).toFixed(2)}` : `$${item.price.toFixed(2)}/ea` }}</p>
                 <button @click="cart.removeFromCart(item.productId)" class="text-xs text-rose-500 hover:text-rose-700 font-bold mt-1">Remove</button>
               </div>
             </div>
@@ -53,10 +54,14 @@
             <span>Shipping</span>
             <span class="text-green-600 font-medium">Free</span>
           </div>
+          <div v-if="totalSavings > 0" class="flex justify-between text-rose-600 font-bold">
+            <span>🎉 Promo Savings</span>
+            <span>-${{ totalSavings.toFixed(2) }}</span>
+          </div>
         </div>
         <div class="flex justify-between items-center mb-6">
           <span class="text-lg font-bold text-gray-900">Total</span>
-          <span class="text-2xl font-black text-indigo-600">${{ selectedTotal.toFixed(2) }}</span>
+          <span class="text-2xl font-black text-rose-600">${{ Math.max(0, selectedTotal - totalSavings).toFixed(2) }}</span>
         </div>
         <button @click="handleCheckout" :disabled="selectedCount === 0 || loading" class="w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white font-black rounded-xl transition-all shadow-lg hover:shadow-indigo-200 disabled:opacity-50">
           {{ loading ? 'Processing...' : selectedCount === 0 ? 'Select items' : 'Place Order' }}
@@ -74,6 +79,7 @@ const cart = useCartStore()
 const notifications = useNotificationStore()
 const router = useRouter()
 const loading = ref(false)
+const promo = usePromotions()
 
 const selected = ref(new Set())
 
@@ -90,6 +96,16 @@ const grouped = computed(() => {
 const selectedItems = computed(() => cart.items.filter(i => selected.value.has(i.productId)))
 const selectedCount = computed(() => selectedItems.value.length)
 const selectedTotal = computed(() => selectedItems.value.reduce((s, i) => s + i.price * i.quantity, 0))
+
+function getItemPromotion(item) { return promo.getBestPromotion(item.productId, item.shopId) }
+
+function itemSavings(item) {
+  const p = getItemPromotion(item)
+  if (!p || p.type !== 'flash_sale') return 0
+  return item.price * item.quantity * ((p.rewards?.percent_off ?? 0) / 100)
+}
+
+const totalSavings = computed(() => selectedItems.value.reduce((s, i) => s + itemSavings(i), 0))
 
 function isSelected(id) { return selected.value.has(id) }
 
@@ -128,5 +144,5 @@ watch(() => cart.items, (items) => {
   selected.value = next
 }, { immediate: true })
 
-onMounted(() => cart.fetchCart())
+onMounted(() => { cart.fetchCart(); promo.fetchAllActive() })
 </script>

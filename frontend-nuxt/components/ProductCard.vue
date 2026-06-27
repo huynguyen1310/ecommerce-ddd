@@ -22,7 +22,14 @@
       <div v-else-if="product.stock === 0" class="absolute inset-0 bg-white/60 backdrop-blur-[2px] flex items-center justify-center">
         <span class="bg-rose-600 text-white text-xs font-black px-3 py-1.5 rounded-lg shadow-lg rotate-[-5deg] uppercase">Out of Stock</span>
       </div>
-      <div v-if="product.category" class="absolute top-2 left-2 bg-indigo-600/90 text-white text-[10px] font-black px-2 py-1 rounded-md uppercase tracking-wider">
+      <div v-if="promotion && promotion.type === 'flash_sale'" class="absolute top-2 left-2 bg-rose-600 text-white text-[10px] font-black px-2 py-1 rounded-md uppercase tracking-wider">
+        <div class="flex items-center gap-1">
+          <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 24 24"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+          -{{ promotion.rewards?.percent_off ?? 0 }}% FLASH
+        </div>
+        <PromotionTimer :end-at="promotion.end_at" class="text-white/80" />
+      </div>
+      <div v-else-if="product.category" class="absolute top-2 left-2 bg-indigo-600/90 text-white text-[10px] font-black px-2 py-1 rounded-md uppercase tracking-wider">
         {{ product.category }}
       </div>
     </NuxtLink>
@@ -44,7 +51,9 @@
 
       <div class="flex items-center justify-between mt-auto pt-4 border-t border-gray-50">
         <div class="flex flex-col">
-          <span class="text-2xl font-black text-indigo-600">${{ product.price }}</span>
+          <span v-if="salePrice" class="text-2xl font-black text-rose-600">${{ salePrice }}</span>
+          <span v-else class="text-2xl font-black text-indigo-600">${{ product.price }}</span>
+          <span v-if="salePrice" class="text-xs text-gray-400 line-through">${{ Number(product.price).toFixed(2) }}</span>
           <span v-if="product.stock > 0" class="text-[10px] text-emerald-500 font-bold uppercase tracking-widest">In Stock</span>
         </div>
         <button
@@ -71,10 +80,18 @@
 import { useWishlistStore } from '~/stores/wishlist'
 const wishlist = useWishlistStore()
 
-defineProps({
+const props = defineProps({
   product: { type: Object, required: true },
   avgRating: { type: Number, default: 0 },
   reviewCount: { type: Number, default: 0 },
+  promotion: { type: Object, default: null },
+})
+
+const salePrice = computed(() => {
+  if (!props.promotion || props.promotion.type !== 'flash_sale') return null
+  const pct = props.promotion.rewards?.percent_off ?? 0
+  const original = Number(props.product.price)
+  return (original * (1 - pct / 100)).toFixed(2)
 })
 defineEmits(['add-to-cart'])
 </script>

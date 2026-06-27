@@ -11,10 +11,15 @@
           <div class="aspect-square bg-gray-50 relative overflow-hidden">
             <img v-if="p.imageUrl" :src="p.imageUrl" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
             <span v-else class="flex items-center justify-center h-full text-3xl text-gray-300">📦</span>
+            <div v-if="getPromotion(p.id, p.shop_id)" class="absolute top-2 left-2 bg-rose-600 text-white text-[8px] font-black px-1.5 py-0.5 rounded uppercase tracking-wider text-center">
+              <div>-{{ getPromotion(p.id, p.shop_id)?.rewards?.percent_off ?? 0 }}% FLASH</div>
+              <PromotionTimer :end-at="getPromotion(p.id, p.shop_id).end_at" class="text-white/70" />
+            </div>
           </div>
           <div class="p-3">
             <p class="text-sm font-bold text-gray-900 truncate">{{ p.name }}</p>
-            <p class="text-xs font-black text-indigo-600 mt-1">${{ Number(p.price).toFixed(2) }}</p>
+            <p class="text-xs font-black text-indigo-600 mt-1" v-if="!getPromotion(p.id, p.shop_id)">${{ Number(p.price).toFixed(2) }}</p>
+            <p v-else class="text-xs font-black text-rose-600 mt-1">${{ (Number(p.price) * (1 - (getPromotion(p.id, p.shop_id)?.rewards?.percent_off ?? 0) / 100)).toFixed(2) }}</p>
           </div>
         </NuxtLink>
       </div>
@@ -31,11 +36,20 @@
           <div class="aspect-square bg-gray-50 relative overflow-hidden">
             <img v-if="p.imageUrl" :src="p.imageUrl" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
             <span v-else class="flex items-center justify-center h-full text-3xl text-gray-300">📦</span>
-            <span class="absolute top-2 left-2 bg-emerald-500 text-white text-[10px] font-black px-2 py-0.5 rounded-md uppercase tracking-wider">New</span>
+            <template v-if="getPromotion(p.id, p.shop_id)">
+              <div class="absolute top-2 left-2 bg-rose-600 text-white text-[8px] font-black px-1.5 py-0.5 rounded uppercase tracking-wider text-center">
+                <div>-{{ getPromotion(p.id, p.shop_id)?.rewards?.percent_off ?? 0 }}% FLASH</div>
+                <PromotionTimer :end-at="getPromotion(p.id, p.shop_id).end_at" class="text-white/70" />
+              </div>
+            </template>
+            <template v-else>
+              <span class="absolute top-2 left-2 bg-emerald-500 text-white text-[10px] font-black px-2 py-0.5 rounded-md uppercase tracking-wider">New</span>
+            </template>
           </div>
           <div class="p-3">
             <p class="text-sm font-bold text-gray-900 truncate">{{ p.name }}</p>
-            <p class="text-xs font-black text-indigo-600 mt-1">${{ Number(p.price).toFixed(2) }}</p>
+            <p class="text-xs font-black text-indigo-600 mt-1" v-if="!getPromotion(p.id, p.shop_id)">${{ Number(p.price).toFixed(2) }}</p>
+            <p v-else class="text-xs font-black text-rose-600 mt-1">${{ (Number(p.price) * (1 - (getPromotion(p.id, p.shop_id)?.rewards?.percent_off ?? 0) / 100)).toFixed(2) }}</p>
           </div>
         </NuxtLink>
       </div>
@@ -51,10 +65,15 @@
           <div class="aspect-square bg-gray-50 relative overflow-hidden">
             <img v-if="p.imageUrl" :src="p.imageUrl" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
             <span v-else class="flex items-center justify-center h-full text-3xl text-gray-300">📦</span>
+            <div v-if="getPromotion(p.id, p.shop_id)" class="absolute top-2 left-2 bg-rose-600 text-white text-[8px] font-black px-1.5 py-0.5 rounded uppercase tracking-wider text-center">
+              <div>-{{ getPromotion(p.id, p.shop_id)?.rewards?.percent_off ?? 0 }}% FLASH</div>
+              <PromotionTimer :end-at="getPromotion(p.id, p.shop_id).end_at" class="text-white/70" />
+            </div>
           </div>
           <div class="p-3">
             <p class="text-sm font-bold text-gray-900 truncate">{{ p.name }}</p>
-            <p class="text-xs font-black text-indigo-600 mt-1">${{ Number(p.price).toFixed(2) }}</p>
+            <p class="text-xs font-black text-indigo-600 mt-1" v-if="!getPromotion(p.id, p.shop_id)">${{ Number(p.price).toFixed(2) }}</p>
+            <p v-else class="text-xs font-black text-rose-600 mt-1">${{ (Number(p.price) * (1 - (getPromotion(p.id, p.shop_id)?.rewards?.percent_off ?? 0) / 100)).toFixed(2) }}</p>
           </div>
         </NuxtLink>
       </div>
@@ -119,6 +138,7 @@
             :product="product"
             :avg-rating="productRatings[product.id]?.avg || 0"
             :review-count="productRatings[product.id]?.count || 0"
+            :promotion="promo.getBestPromotion(product.id, product.shop_id)"
             @add-to-cart="cart.addToCart"
           />
         </div>
@@ -161,6 +181,8 @@
 import { useCartStore } from '~/stores/cart'
 import { useNotificationStore } from '~/stores/notifications'
 import { useAuthStore } from '~/stores/auth'
+const promo = usePromotions()
+function getPromotion(pid, sid) { return promo.getBestPromotion(pid, sid) }
 
 const cart = useCartStore()
 const auth = useAuthStore()
@@ -215,6 +237,7 @@ const fetchProducts = async (page = 1) => {
     products.value = data.data
     paginationMeta.value = data.meta
     fetchAllRatings(data.data)
+    promo.fetchAllActive()
     gridKey.value++
   } catch (err) {
     console.error('Index fetch error:', err)
@@ -270,6 +293,7 @@ async function fetchDiscovery() {
   await Promise.all([
     $fetch(`${apiBaseUrl}/api/products/trending?limit=10`).then(r => trending.value = r || []).catch(() => {}),
     $fetch(`${apiBaseUrl}/api/products/new-arrivals?limit=10`).then(r => newArrivals.value = r || []).catch(() => {}),
+    promo.fetchAllActive(),
   ])
   const userId = auth.user?.id
   if (userId) {

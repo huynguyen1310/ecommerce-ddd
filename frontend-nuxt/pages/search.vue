@@ -107,7 +107,14 @@
           <div class="aspect-square bg-gray-50 relative overflow-hidden">
             <img v-if="r.imageUrl" :src="r.imageUrl" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
             <span v-else class="flex items-center justify-center h-full text-4xl text-gray-300">📦</span>
-            <div v-if="r.category" class="absolute top-2 left-2 bg-white/90 text-[10px] font-black px-2 py-1 rounded-md uppercase tracking-wider text-gray-700">{{ r.category }}</div>
+            <div v-if="getPromotion(r.id, r.shop_id)" class="absolute top-2 left-2 bg-rose-600 text-white text-[10px] font-black px-2 py-1 rounded-md uppercase tracking-wider">
+              <div class="flex items-center gap-1">
+                <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 24 24"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                -{{ getPromotion(r.id, r.shop_id)?.rewards?.percent_off ?? 0 }}% FLASH
+              </div>
+              <PromotionTimer :end-at="getPromotion(r.id, r.shop_id).end_at" class="text-white/80" />
+            </div>
+            <div v-else-if="r.category" class="absolute top-2 left-2 bg-white/90 text-[10px] font-black px-2 py-1 rounded-md uppercase tracking-wider text-gray-700">{{ r.category }}</div>
             <div v-if="!r.inStock" class="absolute inset-0 bg-white/60 backdrop-blur-[1px] flex items-center justify-center">
               <span class="bg-rose-600 text-white text-xs font-black px-3 py-1.5 rounded-lg rotate-[-5deg] shadow-lg uppercase">Out of Stock</span>
             </div>
@@ -115,7 +122,11 @@
           <div class="p-4">
             <p class="font-bold text-gray-900 truncate">{{ r.name }}</p>
             <p v-if="r.shop?.name" class="text-xs text-gray-400 mt-0.5">by {{ r.shop.name }}</p>
-            <p class="text-lg font-black text-indigo-600 mt-1">${{ Number(r.price).toFixed(2) }}</p>
+            <p v-if="!getPromotion(r.id, r.shop_id)" class="text-lg font-black text-indigo-600 mt-1">${{ Number(r.price).toFixed(2) }}</p>
+            <div v-else class="mt-1">
+              <p class="text-lg font-black text-rose-600">${{ (Number(r.price) * (1 - (getPromotion(r.id, r.shop_id)?.rewards?.percent_off ?? 0) / 100)).toFixed(2) }}</p>
+              <p class="text-xs text-gray-400 line-through">${{ Number(r.price).toFixed(2) }}</p>
+            </div>
           </div>
         </NuxtLink>
       </div>
@@ -136,6 +147,8 @@ const cart = useCartStore()
 const route = useRoute()
 const config = useRuntimeConfig()
 const base = process.server ? config.apiGatewayInternalUrl : config.public.apiGatewayUrl
+const promo = usePromotions()
+function getPromotion(pid, sid) { return promo.getBestPromotion(pid, sid) }
 
 const query = ref(route.query.q || '')
 const results = ref([])
@@ -185,6 +198,7 @@ async function fetchResults() {
     results.value = res.data || []
     pagination.value = res.meta
     lastPage.value = Math.ceil(res.meta.total / res.meta.per_page)
+    promo.fetchAllActive()
   } catch { results.value = []; pagination.value = { total: 0, page: 1, perPage: 20 } }
   finally { loading.value = false }
 }
