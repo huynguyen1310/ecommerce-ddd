@@ -1,6 +1,16 @@
 <template>
   <div class="min-h-screen bg-gray-50">
-    <div class="flex">
+    <div v-if="suspended" class="flex items-center justify-center min-h-screen">
+      <div class="text-center max-w-md px-8">
+        <div class="w-16 h-16 bg-rose-100 rounded-full flex items-center justify-center mx-auto mb-4">
+          <svg class="w-8 h-8 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m0 0v2m0-2h2m-2 0H10m9.364-7.364A9 9 0 1112 3a9 9 0 017.364 4.636z"/></svg>
+        </div>
+        <h1 class="text-2xl font-black text-gray-900 mb-2">Shop Suspended</h1>
+        <p class="text-gray-500 mb-6">Your shop has been suspended. Contact the administrator for more information.</p>
+        <NuxtLink to="/" class="px-6 py-2.5 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 transition-colors">Back to Store</NuxtLink>
+      </div>
+    </div>
+    <div v-else class="flex">
       <!-- Sidebar -->
       <aside class="w-64 bg-white border-r border-gray-200 min-h-screen flex flex-col sticky top-0 h-screen">
         <div class="px-5 py-6 border-b border-gray-100">
@@ -53,13 +63,32 @@ const config = useRuntimeConfig()
 const base = process.server ? config.apiGatewayInternalUrl : config.public.apiGatewayUrl
 
 const shop = ref(null)
+const suspended = ref(false)
+let pollTimer = null
 
 function isActive(path) {
   return route.path.startsWith(path)
 }
 
 onMounted(async () => {
-  try { shop.value = await $fetch(`${base}/shops/my`, { headers: auth.token ? { Authorization: `Bearer ${auth.token}` } : {} }) }
-  catch {}
+  await fetchShop()
+  pollTimer = setInterval(fetchShop, 10000)
 })
+
+watch(() => route.path, async () => {
+  if (route.path.startsWith('/vendor')) await fetchShop()
+})
+
+onUnmounted(() => {
+  if (pollTimer) clearInterval(pollTimer)
+})
+
+async function fetchShop() {
+  try {
+    shop.value = await $fetch(`${base}/shops/my`, { headers: auth.token ? { Authorization: `Bearer ${auth.token}` } : {} })
+    suspended.value = shop.value?.status === 'suspended'
+  } catch (e) {
+    if (e?.response?.status === 403) suspended.value = true
+  }
+}
 </script>

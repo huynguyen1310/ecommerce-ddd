@@ -21,8 +21,14 @@ class LoginUseCase {
       throw error;
     }
 
+    if (user.status === 'suspended') {
+      const error = new Error('Account suspended');
+      error.code = 'AUTH_FAILED';
+      throw error;
+    }
+
     const shopId = user.shopId || null;
-    const token = this.jwtProvider.sign({ id: user.id, email: user.email, role: user.role, shopId });
+    const token = this.jwtProvider.sign({ id: user.id, email: user.email, role: user.role, shopId, status: user.status });
     return { token, user: { id: user.id, email: user.email, role: user.role, shopId } };
   }
 }

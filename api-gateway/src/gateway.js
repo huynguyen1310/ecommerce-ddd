@@ -21,7 +21,18 @@ const authMiddleware = (req, res, next) => {
   }
   try {
     req.user = jwt.verify(authHeader.split(' ')[1], JWT_SECRET)
-    next()
+    const statusReq = http.get('http://user-service:3002/users/' + req.user.id + '/status', (statusRes) => {
+      let body = ''
+      statusRes.on('data', (chunk) => { body += chunk })
+      statusRes.on('end', () => {
+        try {
+          const data = JSON.parse(body)
+          if (data.status === 'suspended') return res.status(403).json({ error: 'Account suspended' })
+          next()
+        } catch { next() }
+      })
+    })
+    statusReq.on('error', () => next())
   } catch {
     return res.status(401).json({ error: 'Invalid token' })
   }
@@ -48,6 +59,7 @@ const publicPaths = [
 
 const isPublic = (req) => {
   if (req.path.startsWith('/shops/admin')) return false
+  if (req.path === '/shops/my' || req.path.startsWith('/shops/my/')) return false
   return publicPaths.some(([method, prefix]) => req.method === method && req.path.startsWith(prefix))
 }
 
@@ -74,6 +86,7 @@ const routeMap = [
   ['/users', 'http://user-service:3002'],
   ['/login', 'http://user-service:3002'],
   ['/register', 'http://user-service:3002'],
+  ['/admin/users', 'http://user-service:3002'],
   ['/notifications', 'http://notification-service:4002'],
 ]
 

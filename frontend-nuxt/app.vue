@@ -1,9 +1,7 @@
 <script setup>
 import { useAuthStore } from '~/stores/auth'
 const auth = useAuthStore()
-onMounted(() => {
-  auth.init()
-})
+if (process.client) auth.init()
 </script>
 
 <template>

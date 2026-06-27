@@ -38,11 +38,12 @@
           </div>
         </div>
 
-        <div class="flex items-center gap-1.5 text-sm">
+        <div class="flex items-center gap-1.5 text-sm flex-1 justify-end">
           <NuxtLink v-if="auth.isLoggedIn" to="/orders" class="text-gray-600 hover:text-indigo-600 transition-colors font-medium px-2 py-1.5 shrink-0">My Orders</NuxtLink>
-          <NuxtLink to="/wishlist" class="text-gray-600 hover:text-indigo-600 transition-colors font-medium flex items-center px-2 py-1.5 shrink-0">
-            Wishlist
-            <span v-if="wishlist.count > 0" class="ml-1 px-1.5 py-0.5 text-xs bg-rose-500 text-white rounded-full">{{ wishlist.count }}</span>
+          <NuxtLink to="/wishlist" class="text-gray-600 hover:text-indigo-600 transition-colors font-medium flex items-center gap-1 px-1.5 py-1.5 shrink-0">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>
+            <span class="hidden sm:inline">Wishlist</span>
+            <span v-if="wishlist.count > 0" class="px-1.5 py-0.5 text-xs bg-rose-500 text-white rounded-full">{{ wishlist.count }}</span>
           </NuxtLink>
           <NuxtLink v-if="auth.isLoggedIn" to="/messages" class="text-gray-600 hover:text-indigo-600 transition-colors font-medium flex items-center px-2 py-1.5 shrink-0">
             Messages
@@ -52,9 +53,10 @@
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
             <span v-if="notifUnread > 0" class="absolute -top-0.5 -right-0.5 px-1 py-0.5 text-[10px] bg-rose-500 text-white rounded-full min-w-[16px] text-center leading-none">{{ notifUnread > 99 ? '99+' : notifUnread }}</span>
           </NuxtLink>
-          <NuxtLink to="/cart" class="text-gray-600 hover:text-indigo-600 transition-colors font-medium flex items-center px-1.5 py-1.5 shrink-0 relative">
+          <NuxtLink to="/cart" class="text-gray-600 hover:text-indigo-600 transition-colors font-medium flex items-center gap-1 px-1.5 py-1.5 shrink-0">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 100 4 2 2 0 000-4z"/></svg>
-            <span v-if="cartCount > 0" class="absolute -top-0.5 -right-0.5 px-1 py-0.5 text-[10px] bg-indigo-600 text-white rounded-full min-w-[16px] text-center leading-none">{{ cartCount > 99 ? '99+' : cartCount }}</span>
+            <span class="hidden sm:inline">Cart</span>
+            <span v-if="cartCount > 0" class="ml-1 px-1.5 py-0.5 text-xs bg-indigo-600 text-white rounded-full">{{ cartCount > 99 ? '99+' : cartCount }}</span>
           </NuxtLink>
           <div v-if="auth.isLoggedIn" class="relative border-l pl-1.5 ml-1 profile-menu shrink-0">
             <button @click="showMenu = !showMenu" class="flex items-center gap-1 text-sm font-bold text-gray-900 hover:text-indigo-600 transition-colors px-1.5 py-1.5">

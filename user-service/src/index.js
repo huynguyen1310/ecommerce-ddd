@@ -27,6 +27,14 @@ app.use(express.json());
 
 app.post('/register', (req, res) => authController.register(req, res));
 app.post('/login', (req, res) => authController.login(req, res));
+app.get('/users/:id/status', async (req, res) => {
+  try {
+    const user = await userRepository.findById(req.params.id);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    res.json({ status: user.status });
+  } catch { res.status(500).json({ error: 'Failed' }); }
+});
+
 app.get('/users', async (req, res) => {
   try {
     const users = await userRepository.findAll();
@@ -36,13 +44,17 @@ app.get('/users', async (req, res) => {
   }
 });
 
-const authMiddleware = (req, res, next) => {
+const authMiddleware = async (req, res, next) => {
   const header = req.headers.authorization;
   if (!header || !header.startsWith('Bearer ')) return res.status(401).json({ error: 'Unauthorized' });
   try {
     req.user = jwt.verify(header.split(' ')[1], process.env.JWT_SECRET || 'secret');
+    const user = await userRepository.findById(req.user.id);
+    if (!user || user.status === 'suspended') return res.status(403).json({ error: 'Account suspended' });
     next();
-  } catch { res.status(401).json({ error: 'Invalid token' }); }
+  } catch {
+    res.status(401).json({ error: 'Invalid token' });
+  }
 };
 
 app.post('/become-vendor', authMiddleware, async (req, res) => {
@@ -239,6 +251,56 @@ app.delete('/chat/:shopId', authMiddleware, async (req, res) => {
   } catch (err) {
     console.error('Failed to delete conversation:', err);
     res.status(500).json({ error: 'Failed to delete conversation' });
+  }
+});
+
+// ─── Admin ────────────────────────────────────────────────────────────────
+
+const adminMiddleware = (req, res, next) => {
+  const header = req.headers.authorization;
+  if (!header || !header.startsWith('Bearer ')) return res.status(401).json({ error: 'Unauthorized' });
+  try {
+    const decoded = jwt.verify(header.split(' ')[1], process.env.JWT_SECRET || 'secret');
+    if (decoded.role !== 'admin') return res.status(403).json({ error: 'Forbidden' });
+    req.user = decoded;
+    next();
+  } catch { res.status(401).json({ error: 'Invalid token' }); }
+};
+
+app.get('/admin/users', adminMiddleware, async (req, res) => {
+  try {
+    const { status, role } = req.query;
+    const users = await userRepository.findAll();
+    let filtered = users;
+    if (status) filtered = filtered.filter(u => u.status === status);
+    if (role) filtered = filtered.filter(u => u.role === role);
+    res.json(filtered);
+  } catch (err) {
+    console.error('Admin list users error:', err);
+    res.status(500).json({ error: 'Failed to fetch users' });
+  }
+});
+
+app.patch('/admin/users/:id/role', adminMiddleware, async (req, res) => {
+  try {
+    const { role } = req.body;
+    if (!['customer', 'vendor', 'admin'].includes(role)) return res.status(400).json({ error: 'Invalid role' });
+    await userRepository.updateRole(req.params.id, role);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to update role' });
+  }
+});
+
+app.patch('/admin/users/:id/suspend', adminMiddleware, async (req, res) => {
+  try {
+    const user = await userRepository.findById(req.params.id);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    const newStatus = user.status === 'suspended' ? 'active' : 'suspended';
+    await userRepository.updateStatus(req.params.id, newStatus);
+    res.json({ success: true, status: newStatus });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to toggle suspend' });
   }
 });
 

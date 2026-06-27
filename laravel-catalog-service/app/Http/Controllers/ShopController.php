@@ -108,6 +108,21 @@ class ShopController extends Controller
         return response()->json(['message' => 'Shop approved']);
     }
 
+    public function suspend(Request $request, string $id): JsonResponse
+    {
+        $user = $request->input('jwt_user');
+        if (!$user || ($user['role'] ?? '') !== 'admin') {
+            return response()->json(['error' => 'Forbidden'], 403);
+        }
+        $shop = $this->shopRepository->findById($id);
+        if (!$shop) {
+            return response()->json(['error' => 'Shop not found'], 404);
+        }
+        $shop->status = $shop->status === 'suspended' ? 'active' : 'suspended';
+        $this->shopRepository->save($shop);
+        return response()->json(['message' => 'Shop ' . $shop->status, 'status' => $shop->status]);
+    }
+
     public function products(string $id): JsonResponse
     {
         $shop = $this->shopRepository->findById($id);

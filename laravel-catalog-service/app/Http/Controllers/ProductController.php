@@ -216,10 +216,8 @@ class ProductController extends Controller
             return response()->json(['error' => 'Product not found'], 404);
         }
         if ($product->shopId) {
-            $shop = $this->shopRepository->findById($product->shopId);
-            if (!$shop || $shop->ownerId !== $request->input('jwt_user.id')) {
-                return response()->json(['error' => 'Forbidden'], 403);
-            }
+            $forbidden = $this->ensureShopActive($request, $product->shopId);
+            if ($forbidden) return $forbidden;
         }
         try {
             $this->updateStockUseCase->execute($id, (int) $request->stock);
@@ -229,8 +227,23 @@ class ProductController extends Controller
         }
     }
 
+    private function ensureShopActive(Request $request, string $shopId): ?\Illuminate\Http\JsonResponse
+    {
+        $shop = $this->shopRepository->findById($shopId);
+        if (!$shop || $shop->ownerId !== $request->input('jwt_user.id')) {
+            return response()->json(['error' => 'Forbidden'], 403);
+        }
+        if ($shop->status === 'suspended') {
+            return response()->json(['error' => 'Shop is suspended'], 403);
+        }
+        return null;
+    }
+
     public function store(Request $request): JsonResponse
     {
+        $forbidden = $this->ensureShopActive($request, $request->shop_id);
+        if ($forbidden) return $forbidden;
+
         try {
             $product = $this->createProductAction->execute(
                 $request->name,
@@ -256,10 +269,8 @@ class ProductController extends Controller
         if (!$product) return response()->json(['error' => 'Product not found'], 404);
 
         if ($product->shopId) {
-            $shop = $this->shopRepository->findById($product->shopId);
-            if (!$shop || $shop->ownerId !== $request->input('jwt_user.id')) {
-                return response()->json(['error' => 'Forbidden'], 403);
-            }
+            $forbidden = $this->ensureShopActive($request, $product->shopId);
+            if ($forbidden) return $forbidden;
         }
 
         if ($request->has('name')) $product->name = $request->name;
@@ -274,8 +285,14 @@ class ProductController extends Controller
         return response()->json(['message' => 'Product updated']);
     }
 
-    public function destroy(string $id): JsonResponse
+    public function destroy(Request $request, string $id): JsonResponse
     {
+        $product = $this->productRepository->findById($id);
+        if (!$product) return response()->json(['error' => 'Product not found'], 404);
+        if ($product->shopId) {
+            $forbidden = $this->ensureShopActive($request, $product->shopId);
+            if ($forbidden) return $forbidden;
+        }
         $this->productRepository->delete($id);
         return response()->json(['message' => 'Product deleted']);
     }

@@ -27,16 +27,26 @@ class VariantController extends Controller
         return response()->json(['data' => $variants]);
     }
 
+    private function ensureShopActive(Request $request, string $shopId): ?\Illuminate\Http\JsonResponse
+    {
+        $shop = $this->shopRepository->findById($shopId);
+        if (!$shop || $shop->ownerId !== $request->input('jwt_user.id')) {
+            return response()->json(['error' => 'Forbidden'], 403);
+        }
+        if ($shop->status === 'suspended') {
+            return response()->json(['error' => 'Shop is suspended'], 403);
+        }
+        return null;
+    }
+
     public function store(Request $request, string $productId): JsonResponse
     {
         $product = $this->productRepository->findById($productId);
         if (!$product) return response()->json(['error' => 'Product not found'], 404);
 
         if ($product->shopId) {
-            $shop = $this->shopRepository->findById($product->shopId);
-            if (!$shop || $shop->ownerId !== $request->input('jwt_user.id')) {
-                return response()->json(['error' => 'Forbidden'], 403);
-            }
+            $forbidden = $this->ensureShopActive($request, $product->shopId);
+            if ($forbidden) return $forbidden;
         }
 
         $existing = $this->variantRepository->findBySku($request->sku);
@@ -64,10 +74,8 @@ class VariantController extends Controller
         if (!$product) return response()->json(['error' => 'Product not found'], 404);
 
         if ($product->shopId) {
-            $shop = $this->shopRepository->findById($product->shopId);
-            if (!$shop || $shop->ownerId !== $request->input('jwt_user.id')) {
-                return response()->json(['error' => 'Forbidden'], 403);
-            }
+            $forbidden = $this->ensureShopActive($request, $product->shopId);
+            if ($forbidden) return $forbidden;
         }
 
         $variant = $this->variantRepository->findById($variantId);
@@ -97,10 +105,8 @@ class VariantController extends Controller
         if (!$product) return response()->json(['error' => 'Product not found'], 404);
 
         if ($product->shopId) {
-            $shop = $this->shopRepository->findById($product->shopId);
-            if (!$shop || $shop->ownerId !== $request->input('jwt_user.id')) {
-                return response()->json(['error' => 'Forbidden'], 403);
-            }
+            $forbidden = $this->ensureShopActive($request, $product->shopId);
+            if ($forbidden) return $forbidden;
         }
 
         $this->variantRepository->delete($variantId);

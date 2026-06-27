@@ -36,5 +36,6 @@ Route::post('/shops', [ShopController::class, 'store'])->middleware('jwt.auth');
 Route::get('/shops/my', [ShopController::class, 'my'])->middleware('jwt.auth');
 Route::get('/shops/admin/all', [ShopController::class, 'adminAll'])->middleware('jwt.auth');
 Route::patch('/shops/admin/{id}/approve', [ShopController::class, 'approve'])->middleware('jwt.auth');
+Route::patch('/shops/admin/{id}/suspend', [ShopController::class, 'suspend'])->middleware('jwt.auth');
 Route::get('/shops/{id}', [ShopController::class, 'show']);
 Route::get('/shops/{id}/products', [ShopController::class, 'products']);
