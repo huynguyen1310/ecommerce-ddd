@@ -1,12 +1,12 @@
 <template>
   <div v-if="loading" class="text-center py-20">
-    <p class="text-gray-400">Loading product...</p>
+    <p class="text-gray-400">{{ i18n.$t('common.loading') }}</p>
   </div>
 
   <div v-else-if="error" class="text-center py-20">
     <span class="text-6xl mb-4 block">🔍</span>
     <h2 class="text-2xl font-bold text-gray-900">Product not found</h2>
-    <NuxtLink to="/" class="text-indigo-600 hover:underline mt-2 inline-block">Back to catalog</NuxtLink>
+    <NuxtLink to="/" class="text-indigo-600 hover:underline mt-2 inline-block">{{ i18n.$t('nav.products') }}</NuxtLink>
   </div>
 
   <div v-else class="max-w-4xl mx-auto">
@@ -229,6 +229,7 @@ import { useCartStore } from '~/stores/cart'
 import { useAuthStore } from '~/stores/auth'
 import { useNotificationStore } from '~/stores/notifications'
 import { useRecentlyViewedStore } from '~/stores/recentlyViewed'
+import { useI18nStore } from '~/stores/i18n'
 
 const cart = useCartStore()
 const auth = useAuthStore()
@@ -239,6 +240,7 @@ const router = useRouter()
 const config = useRuntimeConfig()
 const apiBaseUrl = process.server ? config.apiGatewayInternalUrl : config.public.apiGatewayUrl
 const promo = usePromotions()
+const i18n = useI18nStore()
 
 const product = ref(null)
 const reviews = ref([])
@@ -309,7 +311,7 @@ function addToCart() {
 onMounted(async () => {
   recentlyViewed.hydrate()
   try {
-    const data = await $fetch(`${apiBaseUrl}/api/products/${route.params.id}`)
+    const data = await $fetch(`${apiBaseUrl}/api/products/${route.params.id}`, { headers: i18n.localeHeader() })
     product.value = data
     recentlyViewed.track(data)
   } catch {

@@ -3,8 +3,8 @@
     <!-- Trending Now -->
     <section v-if="trending.length" class="mb-10">
       <div class="flex items-center justify-between mb-4">
-        <h2 class="text-xl font-black text-gray-900 tracking-tight">🔥 Trending Now</h2>
-        <NuxtLink to="/search?sort=created_at:desc" class="text-sm font-bold text-indigo-600 hover:text-indigo-800">View all</NuxtLink>
+        <h2 class="text-xl font-black text-gray-900 tracking-tight">🔥 {{ i18n.$t('home.trending') }}</h2>
+        <NuxtLink to="/search?sort=created_at:desc" class="text-sm font-bold text-indigo-600 hover:text-indigo-800">{{ i18n.$t('home.view_all') }}</NuxtLink>
       </div>
       <div class="flex gap-4 overflow-x-auto pb-2 snap-x snap-mandatory scrollbar-none">
         <NuxtLink v-for="p in trending" :key="p.id" :to="`/products/${p.id}`" class="snap-start shrink-0 w-48 bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-md transition-shadow group">
@@ -28,8 +28,8 @@
     <!-- New Arrivals -->
     <section v-if="newArrivals.length" class="mb-10">
       <div class="flex items-center justify-between mb-4">
-        <h2 class="text-xl font-black text-gray-900 tracking-tight">✨ New Arrivals</h2>
-        <NuxtLink to="/search?sort=created_at:desc" class="text-sm font-bold text-indigo-600 hover:text-indigo-800">View all</NuxtLink>
+        <h2 class="text-xl font-black text-gray-900 tracking-tight">✨ {{ i18n.$t('home.new_arrivals') }}</h2>
+        <NuxtLink to="/search?sort=created_at:desc" class="text-sm font-bold text-indigo-600 hover:text-indigo-800">{{ i18n.$t('home.view_all') }}</NuxtLink>
       </div>
       <div class="flex gap-4 overflow-x-auto pb-2 snap-x snap-mandatory scrollbar-none">
         <NuxtLink v-for="p in newArrivals" :key="p.id" :to="`/products/${p.id}`" class="snap-start shrink-0 w-48 bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-md transition-shadow group">
@@ -58,7 +58,7 @@
     <!-- Recently Viewed -->
     <section v-if="recentlyViewed.length" class="mb-10">
       <div class="flex items-center justify-between mb-4">
-        <h2 class="text-xl font-black text-gray-900 tracking-tight">👀 Recently Viewed</h2>
+        <h2 class="text-xl font-black text-gray-900 tracking-tight">👀 {{ i18n.$t('home.recently_viewed') }}</h2>
       </div>
       <div class="flex gap-4 overflow-x-auto pb-2 snap-x snap-mandatory scrollbar-none">
         <NuxtLink v-for="p in recentlyViewed" :key="p.id" :to="`/products/${p.id}`" class="snap-start shrink-0 w-48 bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-md transition-shadow group">
@@ -181,6 +181,7 @@
 import { useCartStore } from '~/stores/cart'
 import { useNotificationStore } from '~/stores/notifications'
 import { useAuthStore } from '~/stores/auth'
+import { useI18nStore } from '~/stores/i18n'
 const promo = usePromotions()
 function getPromotion(pid, sid) { return promo.getBestPromotion(pid, sid) }
 
@@ -188,6 +189,7 @@ const cart = useCartStore()
 const auth = useAuthStore()
 const notifications = useNotificationStore()
 const config = useRuntimeConfig()
+const i18n = useI18nStore()
 
 const products = ref([])
 const loading = ref(true)
@@ -290,14 +292,15 @@ watch([searchQuery, selectedCategory, selectedSort], () => {
 })
 
 async function fetchDiscovery() {
+  const headers = i18n.localeHeader()
   await Promise.all([
-    $fetch(`${apiBaseUrl}/api/products/trending?limit=10`).then(r => trending.value = r || []).catch(() => {}),
-    $fetch(`${apiBaseUrl}/api/products/new-arrivals?limit=10`).then(r => newArrivals.value = r || []).catch(() => {}),
+    $fetch(`${apiBaseUrl}/api/products/trending?limit=10`, { headers }).then(r => trending.value = r || []).catch(() => {}),
+    $fetch(`${apiBaseUrl}/api/products/new-arrivals?limit=10`, { headers }).then(r => newArrivals.value = r || []).catch(() => {}),
     promo.fetchAllActive(),
   ])
   const userId = auth.user?.id
   if (userId) {
-    $fetch(`${apiBaseUrl}/api/products/recently-viewed?user_id=${userId}`).then(r => recentlyViewed.value = r || []).catch(() => {})
+    $fetch(`${apiBaseUrl}/api/products/recently-viewed?user_id=${userId}`, { headers }).then(r => recentlyViewed.value = r || []).catch(() => {})
   }
 }
 

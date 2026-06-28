@@ -17,6 +17,21 @@ class ProductController extends Controller
         private ShopRepositoryInterface $shopRepository,
     ) {}
 
+    private function locale(Request $request): string
+    {
+        $header = $request->header('Accept-Language', 'en');
+        return in_array($header, ['vi', 'en']) ? $header : 'en';
+    }
+
+    private function localize(array $item, $product, string $locale): array
+    {
+        if ($locale === 'en' || !$product->translations) return $item;
+        $t = $product->translations;
+        if (isset($t[$locale]['name'])) $item['name'] = $t[$locale]['name'];
+        if (isset($t[$locale]['description'])) $item['description'] = $t[$locale]['description'];
+        return $item;
+    }
+
     public function autocomplete(Request $request): JsonResponse
     {
         $query = $request->query('q', '');
@@ -28,6 +43,7 @@ class ProductController extends Controller
 
     public function index(Request $request): JsonResponse
     {
+        $locale = $this->locale($request);
         $result = $this->productRepository->findAll(
             (int) $request->query('page', 1),
             (int) $request->query('per_page', 12),
@@ -41,7 +57,7 @@ class ProductController extends Controller
         $shopIds = array_unique(array_filter(array_map(fn($p) => $p->shopId, $result['items'])));
         $shops = !empty($shopIds) ? \App\Models\ShopEloquentModel::whereIn('id', $shopIds)->get()->keyBy('id') : collect();
 
-        $data = array_map(function ($p) use ($shops) {
+        $data = array_map(function ($p) use ($shops, $locale) {
             $item = [
                 'id' => $p->id,
                 'name' => $p->name,
@@ -58,7 +74,7 @@ class ProductController extends Controller
                 $s = $shops->get($p->shopId);
                 $item['shop'] = ['id' => $s->id, 'name' => $s->name];
             }
-            return $item;
+            return $this->localize($item, $p, $locale);
         }, $result['items']);
 
         return response()->json([
@@ -117,20 +133,20 @@ class ProductController extends Controller
 
     public function trending(Request $request): JsonResponse
     {
-        return $this->itemsResponse($this->productRepository->trending((int) $request->query('limit', 20)));
+        return $this->itemsResponse($this->productRepository->trending((int) $request->query('limit', 20)), $this->locale($request));
     }
 
     public function newArrivals(Request $request): JsonResponse
     {
         $products = $this->productRepository->newArrivals((int) $request->query('limit', 20));
-        return $this->itemsResponse($products);
+        return $this->itemsResponse($products, $this->locale($request));
     }
 
     public function recommended(Request $request): JsonResponse
     {
         $productId = $request->query('productId', '');
         $products = $this->productRepository->recommended($productId, (int) $request->query('limit', 12));
-        return $this->itemsResponse($products);
+        return $this->itemsResponse($products, $this->locale($request));
     }
 
     public function recordView(Request $request): JsonResponse
@@ -153,17 +169,17 @@ class ProductController extends Controller
         return $this->itemsResponse($this->productRepository->recentlyViewed($userId));
     }
 
-    private function itemsResponse(array $products): JsonResponse
+    private function itemsResponse(array $products, string $locale = 'en'): JsonResponse
     {
         $shopIds = array_unique(array_filter(array_map(fn($p) => $p->shopId, $products)));
         $shops = !empty($shopIds) ? \App\Models\ShopEloquentModel::whereIn('id', $shopIds)->get()->keyBy('id') : collect();
-        $data = array_map(function ($p) use ($shops) {
+        $data = array_map(function ($p) use ($shops, $locale) {
             $item = ['id' => $p->id, 'name' => $p->name, 'price' => $p->price, 'imageUrl' => $p->imageUrl, 'category' => $p->category, 'shopId' => $p->shopId];
             if ($p->shopId && $shops->has($p->shopId)) {
                 $s = $shops->get($p->shopId);
                 $item['shop'] = ['id' => $s->id, 'name' => $s->name];
             }
-            return $item;
+            return $this->localize($item, $p, $locale);
         }, $products);
         return response()->json($data);
     }
@@ -180,8 +196,9 @@ class ProductController extends Controller
         return response()->json($this->productRepository->findAllCategories());
     }
 
-    public function show(string $id): JsonResponse
+    public function show(Request $request, string $id): JsonResponse
     {
+        $locale = $this->locale($request);
         $product = $this->productRepository->findById($id);
         if (!$product) {
             return response()->json(['error' => 'Product not found'], 404);
@@ -195,7 +212,7 @@ class ProductController extends Controller
             }
         }
 
-        return response()->json([
+        $result = [
             'id' => $product->id,
             'name' => $product->name,
             'sku' => $product->sku,
@@ -206,7 +223,8 @@ class ProductController extends Controller
             'description' => $product->description,
             'category' => $product->category,
             'shop' => $shop,
-        ]);
+        ];
+        return response()->json($this->localize($result, $product, $locale));
     }
 
     public function updateStock(Request $request, string $id): JsonResponse
@@ -257,6 +275,13 @@ class ProductController extends Controller
                 null,
                 $request->images ?? [],
             );
+
+            if ($request->has('translations')) {
+                $p = \App\Models\ProductEloquentModel::find($product->id);
+                $p->translations = $request->translations;
+                $p->save();
+            }
+
             return response()->json(['message' => 'Product created', 'id' => $product->id], 201);
         } catch (\RuntimeException $e) {
             return response()->json(['error' => $e->getMessage()], 422);
@@ -280,6 +305,7 @@ class ProductController extends Controller
         if ($request->has('images')) $product->images = $request->images;
         if ($request->has('description')) $product->description = $request->description;
         if ($request->has('category')) $product->category = $request->category;
+        if ($request->has('translations')) $product->translations = $request->translations;
 
         $this->productRepository->save($product);
         return response()->json(['message' => 'Product updated']);

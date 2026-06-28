@@ -6,6 +6,11 @@ use App\Http\Controllers\ShopController;
 use App\Http\Controllers\UploadController;
 use App\Http\Controllers\VariantController;
 use App\Http\Controllers\PromotionController;
+use App\Http\Controllers\LocaleController;
+
+Route::get('/locales', [LocaleController::class, 'locales']);
+Route::get('/translations', [LocaleController::class, 'translations']);
+Route::post('/translations/bulk', [LocaleController::class, 'upsert'])->middleware('jwt.auth');
 
 Route::get('/products', [ProductController::class, 'index']);
 Route::get('/products/search', [ProductController::class, 'search']);
